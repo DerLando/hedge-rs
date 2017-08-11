@@ -1,5 +1,33 @@
 # Hedge Changelog
 
+## 0.0.10
+
+Large internal reorganization. Most operations that modify the mesh are now implemented as a series of trait impls with simple but legible types to describe the operation and provide arguments.
+
+Example:
+
+    let mut mesh = Mesh::new();
+
+    let v1 = mesh.add(Vertex::default());
+    let v2 = mesh.add(Vertex::default());
+    let v3 = mesh.add(Vertex::default());
+
+    // Add a new triangle using these verts.
+    let f1 = mesh.add(triangle::FromVerts(v1, v2, v3));
+
+    // oops, that was the wrong order!
+    mesh.remove(f1);
+
+    let f1 = mesh.add(triangle::FromVerts(v3, v2, v1));
+
+It makes the docs a bit more complicated (so I'll need to put effort into a guide), but I think it pays off when actually using the API. I believe this opens some doors to more high level operators on meshes.
+
+In addition to the API changes, removing edges is now possible.
+
+One last important note is that the behavior working with edges has changed to *always add or remove the twin edge*. So when adding a triangle to an empty mesh you'll have 6 edges instead of 3, and if you remove an edge you'll be actually removing **two** edges. This ensures consistency and keeps edges next to each other in memory which could open the door to certain optimizations in the future.
+
+At the moment the only operations setup are `AddGeometry` and `RemoveGeometry` but there is already a case to be made for an operation such as `DissolveGeometry` which expands on component removal to also remove components affected and ensure a mesh still conforms to some sanity checks.
+
 ## 0.0.9
 
 `EdgeIndex`, `FaceIndex`, and `VertexIndex` are now structs instead of type aliases.
