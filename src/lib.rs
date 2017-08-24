@@ -35,8 +35,15 @@ pub trait IsValid {
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_INDEX: usize = 0;
 
-/// Type alias for indices into vertex attribute storage
-pub type VertexAttributeIndex = usize;
+/// Handle to VertexData data in a Mesh
+#[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub struct VertexAttributeIndex(usize);
+
+impl IsValid for VertexAttributeIndex {
+    fn is_valid(&self) -> bool {
+        self.0 != INVALID_COMPONENT_INDEX
+    }
+}
 
 /// Handle to Vertex data in a Mesh
 #[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
@@ -90,7 +97,7 @@ impl Vertex {
     pub fn new(edge_index: EdgeIndex) -> Vertex {
         Vertex {
             edge_index: edge_index,
-            attr_index: INVALID_COMPONENT_INDEX
+            attr_index: VertexAttributeIndex::default()
         }
     }
 }
@@ -98,8 +105,8 @@ impl Vertex {
 impl IsValid for Vertex {
     /// A vertex is considered "valid" as long as it has a valid edge index.
     fn is_valid(&self) -> bool {
-        self.edge_index.is_valid() /*&&
-            self.attr_index.is_valid()*/
+        self.edge_index.is_valid() &&
+            self.attr_index.is_valid()
     }
 }
 
@@ -165,8 +172,8 @@ pub type FaceList = Vec<Face>;
 
 pub struct Mesh {
     edge_list: EdgeList,
+    face_list: FaceList,
     vertex_list: VertexList,
-    face_list: FaceList
 }
 
 impl fmt::Debug for Mesh {
@@ -186,12 +193,12 @@ impl Mesh {
             edge_list: vec! [
                 Edge::default()
             ],
+            face_list: vec! [
+                Face::default()
+            ],
             vertex_list: vec! [
                 Vertex::default()
             ],
-            face_list: vec! [
-                Face::default()
-            ]
         }
     }
 
