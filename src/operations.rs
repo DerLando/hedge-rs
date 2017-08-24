@@ -2,9 +2,9 @@
 //! Types, Traits, and impl for various operations on `Mesh` objects.
 //!
 
-use super::components::*;
-use super::mesh::*;
 use super::iterators::*;
+use super::{Vertex, VertexIndex, Edge, EdgeIndex,
+            Face, FaceIndex, Mesh, IsValid, Handle};
 
 pub mod edge {
     //! Operation parameters for creating and modifying edges.
