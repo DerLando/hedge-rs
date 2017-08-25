@@ -32,5 +32,4 @@ env_logger = "0.4"
 
 [features]
 default = ["cgmath"]
-with_cgmath = ["cgmath"]
 with_nalgebra = ["nalgebra"]

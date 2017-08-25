@@ -7,7 +7,7 @@
 
 #[macro_use]
 extern crate log;
-#[cfg(feature = "with_cgmath")]
+#[cfg(not(feature = "with_nalgebra"))]
 extern crate cgmath;
 #[cfg(feature = "with_nalgebra")]
 extern crate nalgebra;
@@ -31,19 +31,8 @@ pub trait IsValid {
     fn is_valid(&self) -> bool;
 }
 
-
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_INDEX: usize = 0;
-
-/// Handle to VertexData data in a Mesh
-#[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct VertexAttributeIndex(usize);
-
-impl IsValid for VertexAttributeIndex {
-    fn is_valid(&self) -> bool {
-        self.0 != INVALID_COMPONENT_INDEX
-    }
-}
 
 /// Handle to Vertex data in a Mesh
 #[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
@@ -84,20 +73,31 @@ impl IsValid for FaceIndex {
 
 impl Handle for FaceIndex {}
 
+#[cfg(not(feature = "with_nalgebra"))]
+pub type Point = cgmath::Vector3<f64>;
+#[cfg(feature = "with_nalgebra")]
+pub type Point = nalgebra::Point3<f64>;
+
 /// Represents the point where two edges meet.
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Vertex {
     /// Index of the outgoing edge
     pub edge_index: EdgeIndex,
-    /// Index of this vertex's attributes. _unused currently_
-    pub attr_index: VertexAttributeIndex,
+    pub point: Point,
 }
 
 impl Vertex {
     pub fn new(edge_index: EdgeIndex) -> Vertex {
         Vertex {
             edge_index: edge_index,
-            attr_index: VertexAttributeIndex::default()
+            point: default_point()
+        }
+    }
+
+    pub fn from_point(point: Point) -> Vertex {
+        Vertex {
+            edge_index: EdgeIndex::default(),
+            point: point,
         }
     }
 }
@@ -105,8 +105,27 @@ impl Vertex {
 impl IsValid for Vertex {
     /// A vertex is considered "valid" as long as it has a valid edge index.
     fn is_valid(&self) -> bool {
-        self.edge_index.is_valid() &&
-            self.attr_index.is_valid()
+        self.edge_index.is_valid()
+    }
+}
+
+#[cfg(not(feature="with_nalgebra"))]
+fn default_point() -> Point {
+    Point {
+        x: 0.0, y: 0.0, z: 0.0
+    }
+}
+#[cfg(feature="with_nalgebra")]
+fn default_point() -> Point {
+    Point::new(0.0, 0.0, 0.0)
+}
+
+impl Default for Vertex {
+    fn default() -> Vertex {
+        Vertex {
+            edge_index: EdgeIndex(INVALID_COMPONENT_INDEX),
+            point: default_point(),
+        }
     }
 }
 
@@ -167,8 +186,8 @@ impl IsValid for Face {
 }
 
 pub type EdgeList = Vec<Edge>;
-pub type VertexList = Vec<Vertex>;
 pub type FaceList = Vec<Face>;
+pub type VertexList = Vec<Vertex>;
 
 pub struct Mesh {
     edge_list: EdgeList,
