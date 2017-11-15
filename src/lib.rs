@@ -89,7 +89,7 @@ pub struct Vertex {
 impl Vertex {
     pub fn new(edge_index: EdgeIndex) -> Vertex {
         Vertex {
-            edge_index: edge_index,
+            edge_index,
             point: default_point()
         }
     }
@@ -97,7 +97,7 @@ impl Vertex {
     pub fn from_point(point: Point) -> Vertex {
         Vertex {
             edge_index: EdgeIndex::default(),
-            point: point,
+            point,
         }
     }
 }

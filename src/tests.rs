@@ -359,8 +359,8 @@ fn can_remove_faces() {
 
     print_mesh(&mesh);
 
-    assert!(mesh.is_boundary_edge(f0e1) == false);
-    assert!(mesh.is_boundary_edge(f1e0) == false);
+    assert_eq!(mesh.is_boundary_edge(f0e1), false);
+    assert_eq!(mesh.is_boundary_edge(f1e0), false);
 
     mesh.remove(f1);
 
@@ -370,8 +370,8 @@ fn can_remove_faces() {
     let f1 = mesh.add(triangle::FromOneEdge(f0e1, v2));
     let f1e0 = mesh.face(f1).edge_index;
 
-    assert!(mesh.is_boundary_edge(f0e1) == false);
-    assert!(mesh.is_boundary_edge(f1e0) == false);
+    assert_eq!(mesh.is_boundary_edge(f0e1), false);
+    assert_eq!(mesh.is_boundary_edge(f1e0), false);
 
     mesh.remove(f0);
 
@@ -392,10 +392,10 @@ fn can_remove_vertices() {
 
     mesh.remove(v2);
 
-    assert!(mesh.vertex(v2).is_valid() == false);
+    assert_eq!(mesh.vertex(v2).is_valid(), false);
 
-    assert!(mesh.face_fn(f0).edge().prev().is_valid() == false);
-    assert!(mesh.face_fn(f0).edge().next().twin().is_valid() == false);
+    assert_eq!(mesh.face_fn(f0).edge().prev().is_valid(), false);
+    assert_eq!(mesh.face_fn(f0).edge().next().twin().is_valid(), false);
 }
 
 #[test]

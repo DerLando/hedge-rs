@@ -21,7 +21,7 @@ log = "0.3"
 
 [dependencies.cgmath]
 optional = true
-version = "0.14"
+version = "0.15"
 
 [dependencies.nalgebra]
 optional = true

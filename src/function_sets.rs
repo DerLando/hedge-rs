@@ -24,9 +24,9 @@ impl<'mesh> FaceFn<'mesh> {
 
     pub fn new(index: FaceIndex, mesh: &'mesh Mesh) -> FaceFn {
         FaceFn {
-            mesh: mesh,
+            mesh,
             face: &mesh.face(index),
-            index: index
+            index
         }
     }
 
@@ -60,9 +60,9 @@ pub struct EdgeFn<'mesh> {
 impl<'mesh> EdgeFn<'mesh> {
     pub fn new(index: EdgeIndex, mesh: &'mesh Mesh) -> EdgeFn {
         EdgeFn {
-            mesh: mesh,
+            mesh,
             edge: &mesh.edge(index),
-            index: index
+            index
         }
     }
 
@@ -111,9 +111,9 @@ impl<'mesh> VertexFn<'mesh> {
 
     pub fn new(index: VertexIndex, mesh: &'mesh Mesh) -> VertexFn {
         VertexFn {
-            mesh: mesh,
+            mesh,
             vertex: &mesh.vertex(index),
-            index: index
+            index
         }
     }
 
