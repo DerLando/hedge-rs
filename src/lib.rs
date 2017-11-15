@@ -79,7 +79,7 @@ pub type Point = cgmath::Vector3<f64>;
 pub type Point = nalgebra::Point3<f64>;
 
 /// Represents the point where two edges meet.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Vertex {
     /// Index of the outgoing edge
     pub edge_index: EdgeIndex,
@@ -90,7 +90,7 @@ impl Vertex {
     pub fn new(edge_index: EdgeIndex) -> Vertex {
         Vertex {
             edge_index,
-            point: default_point()
+            point: default_point(),
         }
     }
 
@@ -131,7 +131,7 @@ impl Default for Vertex {
 
 
 /// The principle component in a half-edge mesh.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Edge {
     /// The adjacent or 'twin' half-edge
     pub twin_index: EdgeIndex,
@@ -163,7 +163,7 @@ impl IsValid for Edge {
 
 
 /// A face is defined by the looping connectivity of edges.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Face {
     /// The "root" of an edge loop that defines this face.
     pub edge_index: EdgeIndex,
@@ -171,9 +171,7 @@ pub struct Face {
 
 impl Face {
     pub fn new(edge_index: EdgeIndex) -> Face {
-        Face {
-            edge_index
-        }
+        Face { edge_index }
     }
 }
 
@@ -189,6 +187,7 @@ pub type EdgeList = Vec<Edge>;
 pub type FaceList = Vec<Face>;
 pub type VertexList = Vec<Vertex>;
 
+#[derive(Clone)]
 pub struct Mesh {
     edge_list: EdgeList,
     face_list: FaceList,
@@ -209,15 +208,9 @@ impl Mesh {
     /// Vec comes from the blog http://ourmachinery.com/post/defaulting-to-zero/
     pub fn new() -> Mesh {
         Mesh {
-            edge_list: vec! [
-                Edge::default()
-            ],
-            face_list: vec! [
-                Face::default()
-            ],
-            vertex_list: vec! [
-                Vertex::default()
-            ],
+            edge_list: vec! [ Edge::default() ],
+            face_list: vec! [ Face::default() ],
+            vertex_list: vec! [ Vertex::default() ],
         }
     }
 

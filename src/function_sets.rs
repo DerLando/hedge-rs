@@ -13,7 +13,7 @@ use super::{
 
 
 /// Function set for operations related to the Face struct
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
     mesh: &'mesh Mesh,
     face: &'mesh Face,
@@ -50,7 +50,7 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
 
 
 /// Function set for operations related to the Edge struct
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct EdgeFn<'mesh> {
     mesh: &'mesh Mesh,
     edge: &'mesh Edge,
@@ -100,7 +100,7 @@ impl<'mesh> IsValid for EdgeFn<'mesh> {
 
 
 /// Function set for operations related to the Vertex struct
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct VertexFn<'mesh> {
     mesh: &'mesh Mesh,
     vertex: &'mesh Vertex,
