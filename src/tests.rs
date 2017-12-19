@@ -63,9 +63,9 @@ fn initial_mesh_has_default_elements() {
 fn can_iterate_over_faces() {
     let _ = env_logger::init();
     let mut mesh = TestMesh::new();
-    mesh.face_list.push(Face::new(EdgeIndex(1)));
-    mesh.face_list.push(Face::new(EdgeIndex(4)));
-    mesh.face_list.push(Face::new(EdgeIndex(7)));
+    mesh.face_list.push(Face::new(EdgeIndex::new(1)));
+    mesh.face_list.push(Face::new(EdgeIndex::new(4)));
+    mesh.face_list.push(Face::new(EdgeIndex::new(7)));
 
     assert_eq!(mesh.face_list.len(), 4);
 
@@ -198,7 +198,7 @@ fn can_walk_and_get_mutable_ref() {
             &mut mesh.vertex_mut(index)
         };
         debug!("{:?}", vertex);
-        assert_eq!(vertex.edge_index.0, 6);
+        assert_eq!(vertex.edge_index.offset, 6);
         vertex.edge_index = EdgeIndex::default();
     }
 
@@ -334,7 +334,7 @@ fn can_iterate_edges_around_vertex() {
     for eindex in mesh.edges_around_vertex(vert) {
         debug!("{:?}", eindex);
         assert! {
-            (eindex == EdgeIndex(3)) || (eindex == EdgeIndex(4)) || (eindex == EdgeIndex(10))
+            (eindex == EdgeIndex::new(3)) || (eindex == EdgeIndex::new(4)) || (eindex == EdgeIndex::new(10))
         };
         edges_enumerated += 1;
     }
@@ -426,7 +426,7 @@ fn can_remove_edge() {
 
     assert_eq!(mesh.face(f0).edge_index, f0e1);
 
-    assert_eq!(mesh.face_fn(f1).edge().index, EdgeIndex(4));
-    assert_eq!(mesh.face_fn(f1).edge().next().index, EdgeIndex(7));
-    assert_eq!(mesh.face_fn(f1).edge().prev().index, EdgeIndex(2));
+    assert_eq!(mesh.face_fn(f1).edge().index, EdgeIndex::new(4));
+    assert_eq!(mesh.face_fn(f1).edge().next().index, EdgeIndex::new(7));
+    assert_eq!(mesh.face_fn(f1).edge().prev().index, EdgeIndex::new(2));
 }

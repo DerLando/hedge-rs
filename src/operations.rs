@@ -80,7 +80,7 @@ pub trait AddGeometry<Descriptor, I: Handle> {
 /// No questions asked, insert this `Vertex` into the `Mesh` storage.
 impl AddGeometry<Vertex, VertexIndex> for Mesh {
     fn add(&mut self, vertex: Vertex) -> VertexIndex {
-        let result = VertexIndex(self.vertex_list.len());
+        let result = VertexIndex::new(self.vertex_list.len());
         self.vertex_list.push(vertex);
         return result;
     }
@@ -89,7 +89,7 @@ impl AddGeometry<Vertex, VertexIndex> for Mesh {
 /// No questions asked, insert this `Edge` into the `Mesh` storage.
 impl AddGeometry<Edge, EdgeIndex> for Mesh {
     fn add(&mut self, edge: Edge) -> EdgeIndex {
-        let result = EdgeIndex(self.edge_list.len());
+        let result = EdgeIndex::new(self.edge_list.len());
         self.edge_list.push(edge);
         return result;
     }
@@ -98,7 +98,7 @@ impl AddGeometry<Edge, EdgeIndex> for Mesh {
 /// No questions asked, insert this `Face` into the `Mesh` storage.
 impl AddGeometry<Face, FaceIndex> for Mesh {
     fn add(&mut self, face: Face) -> FaceIndex {
-        let result = FaceIndex(self.face_list.len());
+        let result = FaceIndex::new(self.face_list.len());
         self.face_list.push(face);
         return result;
     }
@@ -242,8 +242,8 @@ impl AddGeometry<edge::FromVerts, EdgeIndex> for Mesh {
         debug_assert!(verts.0.is_valid());
         debug_assert!(verts.1.is_valid());
 
-        let eindex_a = EdgeIndex(self.edge_list.len());
-        let eindex_b = EdgeIndex(eindex_a.0 + 1);
+        let eindex_a = EdgeIndex::new(self.edge_list.len());
+        let eindex_b = EdgeIndex::new(eindex_a.offset + 1);
 
         let edge_a = Edge {
             twin_index: eindex_b,
@@ -317,7 +317,7 @@ impl RemoveGeometry<FaceIndex> for Mesh {
     fn remove(&mut self, index: FaceIndex) {
         debug!("Removing face at {:?}", index);
         // swap remove
-        let removed_face = self.face_list.swap_remove(index.0);
+        let removed_face = self.face_list.swap_remove(index.offset);
         trace!("Removed: {:?}", removed_face);
 
         // update edges that were associated with old face
@@ -342,8 +342,8 @@ impl RemoveGeometry<EdgeIndex> for Mesh {
         debug!("Removing edge at {:?} and {:?}", indices[0], indices[1]);
 
         for eindex in indices.iter() {
-            let swapped_index = EdgeIndex(self.num_edges());
-            let removed_edge = self.edge_list.swap_remove(eindex.0);
+            let swapped_index = EdgeIndex::new(self.num_edges());
+            let removed_edge = self.edge_list.swap_remove(eindex.offset);
             trace!("Removed {:?} - {:?}", *eindex, removed_edge);
 
             if removed_edge.next_index.is_valid() {
@@ -401,12 +401,12 @@ impl RemoveGeometry<EdgeIndex> for Mesh {
 impl RemoveGeometry<VertexIndex> for Mesh {
     fn remove(&mut self, index: VertexIndex) {
         debug!("Removing vertex at {:?}", index);
-        let removed_vertex = self.vertex_list.swap_remove(index.0);
+        let removed_vertex = self.vertex_list.swap_remove(index.offset);
         trace!("Removed: {:?}", removed_vertex);
-        let swapped_index = VertexIndex(self.vertex_list.len());
+        let swapped_index = VertexIndex::new(self.vertex_list.len());
         // FIXME: Iterator for vertex connectivity isn't working yet.
         for (i, edge) in self.edge_list.iter_mut().enumerate() {
-            let eindex = EdgeIndex(i);
+            let eindex = EdgeIndex::new(i);
             if edge.vertex_index == index {
                 trace!("Updated {:?} with default vertex index.", eindex);
                 edge.vertex_index = VertexIndex::default();

@@ -17,7 +17,7 @@ pub struct Faces {
 impl Faces {
     pub fn new(face_count: usize) -> Faces {
         Faces {
-            face_count: face_count,
+            face_count,
             previous_index: FaceIndex::default()
         }
     }
@@ -28,8 +28,8 @@ impl Iterator for Faces {
     type Item = FaceIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.previous_index = FaceIndex(self.previous_index.0 + 1);
-        if self.previous_index.0 >= self.face_count {
+        self.previous_index = FaceIndex::new(self.previous_index.offset + 1);
+        if self.previous_index.offset >= self.face_count {
             None
         } else {
             Some(self.previous_index)
@@ -46,7 +46,7 @@ pub struct EdgesAroundVertex<'mesh> {
 impl<'mesh> EdgesAroundVertex<'mesh> {
     pub fn new(edge_index: EdgeIndex, mesh: &'mesh Mesh) -> EdgesAroundVertex<'mesh> {
         EdgesAroundVertex {
-            mesh: mesh,
+            mesh,
             last_index: EdgeIndex::default(),
             next_index: edge_index,
         }
@@ -79,7 +79,7 @@ pub struct EdgeLoopVertices<'mesh> {
 impl<'mesh> EdgeLoopVertices<'mesh> {
     pub fn new(index: EdgeIndex, edge_list: &'mesh EdgeList) -> EdgeLoopVertices {
         EdgeLoopVertices {
-            edge_list: edge_list,
+            edge_list,
             initial_index: index,
             current_index: EdgeIndex::default()
         }
@@ -91,20 +91,20 @@ impl<'mesh> Iterator for EdgeLoopVertices<'mesh> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_index.is_valid() {
-            self.edge_list.get(self.current_index.0)
+            self.edge_list.get(self.current_index.offset)
                 .and_then(|last_edge| {
                     self.current_index = last_edge.next_index;
                     if self.current_index == self.initial_index {
                         None
                     } else {
-                        self.edge_list.get(self.current_index.0)
+                        self.edge_list.get(self.current_index.offset)
                             .map(|e| e.vertex_index)
                     }
                 })
         } else {
             if self.initial_index.is_valid() {
                 self.current_index = self.initial_index;
-                self.edge_list.get(self.current_index.0).map(|e| e.vertex_index)
+                self.edge_list.get(self.current_index.offset).map(|e| e.vertex_index)
             } else {
                 None
             }
@@ -122,7 +122,7 @@ pub struct EdgeLoop<'mesh> {
 impl<'mesh> EdgeLoop<'mesh> {
     pub fn new(index: EdgeIndex, edge_list: &'mesh EdgeList) -> EdgeLoop {
         EdgeLoop {
-            edge_list: edge_list,
+            edge_list,
             initial_index: index,
             current_index: EdgeIndex::default()
         }
@@ -134,7 +134,7 @@ impl<'mesh> Iterator for EdgeLoop<'mesh> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_index.is_valid() {
-            self.edge_list.get(self.current_index.0).and_then(|current_edge| {
+            self.edge_list.get(self.current_index.offset).and_then(|current_edge| {
                 self.current_index = current_edge.next_index;
                 if self.current_index == self.initial_index {
                     None

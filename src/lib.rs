@@ -7,12 +7,12 @@
 
 #[macro_use]
 extern crate log;
-#[cfg(not(feature = "with_nalgebra"))]
+
 extern crate cgmath;
-#[cfg(feature = "with_nalgebra")]
-extern crate nalgebra;
 
 use std::fmt;
+use std::marker;
+use std::cmp::Ordering;
 
 pub use iterators::*;
 pub use operations::*;
@@ -22,8 +22,53 @@ pub mod operations;
 pub mod iterators;
 pub mod function_sets;
 
-/// Marker trait for index types.
 pub trait Handle {}
+pub trait Kernel {}
+
+pub type Offset = usize;
+pub type Generation = usize;
+
+/// Our default value for uninitialized or unconnected components in the mesh.
+pub const INVALID_COMPONENT_OFFSET: Offset = 0;
+
+/// Marker trait for index types.
+#[derive(Default, Debug, Clone, Copy)]
+pub struct Index<T> {
+    offset: Offset,
+    generation: Generation,
+    _marker: marker::PhantomData<T>,
+}
+
+impl <T> Index<T> {
+    pub fn new(offset: Offset) -> Index<T> {
+        Index {
+            offset,
+            generation: 0,
+            _marker: marker::PhantomData::default(),
+        }
+    }
+
+    pub fn with_generation(offset: Offset, generation: Generation) -> Index<T> {
+        Index {
+            offset,
+            generation,
+            _marker: marker::PhantomData::default(),
+        }
+    }
+}
+
+impl <T> PartialOrd for Index<T> {
+    fn partial_cmp(&self, other: &Index<T>) -> Option<Ordering> {
+        // Only the offset should matter when it comes to ordering
+        self.offset.partial_cmp(&other.offset)
+    }
+}
+
+impl <T> PartialEq for Index<T> {
+    fn eq(&self, other: &Index<T>) -> bool {
+        self.offset.eq(&other.offset) && self.generation.eq(&other.generation)
+    }
+}
 
 /// An interface for asserting the validity of components in the mesh.
 pub trait IsValid {
@@ -31,73 +76,61 @@ pub trait IsValid {
     fn is_valid(&self) -> bool;
 }
 
-/// Our default value for uninitialized or unconnected components in the mesh.
-pub const INVALID_COMPONENT_INDEX: usize = 0;
-
-/// Handle to Vertex data in a Mesh
-#[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct VertexIndex(usize);
-
-impl IsValid for VertexIndex {
-    /// A valid VertexIndex has an index that does not equal INVALID_COMPONENT_INDEX
+impl <T> IsValid for Index<T> {
     fn is_valid(&self) -> bool {
-        self.0 != INVALID_COMPONENT_INDEX
+        self.offset != INVALID_COMPONENT_OFFSET
     }
 }
 
+/// Handle to Vertex data in a Mesh
+pub type VertexIndex = Index<Vertex>;
 impl Handle for VertexIndex {}
 
 /// Handle to Edge data in a Mesh
-#[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct EdgeIndex(usize);
-
-impl IsValid for EdgeIndex {
-    /// A valid EdgeIndex has an index that does not equal INVALID_COMPONENT_INDEX
-    fn is_valid(&self) -> bool {
-        self.0 != INVALID_COMPONENT_INDEX
-    }
-}
-
+pub type EdgeIndex = Index<Edge>;
 impl Handle for EdgeIndex {}
 
 /// Handle to Face data in a Mesh
-#[derive(Default, Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct FaceIndex(usize);
+pub type FaceIndex = Index<Face>;
+impl Handle for FaceIndex {}
 
-impl IsValid for FaceIndex {
-    /// A valid FaceIndex has an index that does not equal INVALID_COMPONENT_INDEX
-    fn is_valid(&self) -> bool {
-        self.0 != INVALID_COMPONENT_INDEX
+/// Handle to Point data in a Mesh
+pub type PointIndex = Index<Point>;
+impl Handle for PointIndex {}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Point {
+    position: cgmath::Vector3<f64>,
+}
+
+impl Default for Point {
+    fn default() -> Point {
+        Point {
+            position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+        }
     }
 }
 
-impl Handle for FaceIndex {}
-
-#[cfg(not(feature = "with_nalgebra"))]
-pub type Point = cgmath::Vector3<f64>;
-#[cfg(feature = "with_nalgebra")]
-pub type Point = nalgebra::Point3<f64>;
-
 /// Represents the point where two edges meet.
-#[derive(Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Vertex {
     /// Index of the outgoing edge
     pub edge_index: EdgeIndex,
-    pub point: Point,
+    pub point_index: PointIndex,
 }
 
 impl Vertex {
-    pub fn new(edge_index: EdgeIndex) -> Vertex {
+    pub fn from_edge(edge_index: EdgeIndex) -> Vertex {
         Vertex {
             edge_index,
-            point: default_point(),
+            point_index: PointIndex::default(),
         }
     }
 
-    pub fn from_point(point: Point) -> Vertex {
+    pub fn from_point(point_index: PointIndex) -> Vertex {
         Vertex {
             edge_index: EdgeIndex::default(),
-            point,
+            point_index,
         }
     }
 }
@@ -108,27 +141,6 @@ impl IsValid for Vertex {
         self.edge_index.is_valid()
     }
 }
-
-#[cfg(not(feature="with_nalgebra"))]
-fn default_point() -> Point {
-    Point {
-        x: 0.0, y: 0.0, z: 0.0
-    }
-}
-#[cfg(feature="with_nalgebra")]
-fn default_point() -> Point {
-    Point::new(0.0, 0.0, 0.0)
-}
-
-impl Default for Vertex {
-    fn default() -> Vertex {
-        Vertex {
-            edge_index: EdgeIndex(INVALID_COMPONENT_INDEX),
-            point: default_point(),
-        }
-    }
-}
-
 
 /// The principle component in a half-edge mesh.
 #[derive(Default, Debug, Copy, Clone)]
@@ -250,6 +262,7 @@ impl Mesh {
     /// let mesh = Mesh::new();
     /// for index in mesh.faces() {
     ///    let face = &mesh.face(index);
+    ///    println!("{:?}", face);
     /// }
     /// ```
     pub fn faces(&self) -> Faces {
@@ -265,6 +278,7 @@ impl Mesh {
     ///    let face = &mesh.face(findex);
     ///    for eindex in mesh.edges(face) {
     ///        let edge = &mesh.edge(eindex);
+    ///        println!("{:?}", edge);
     ///    }
     /// }
     /// ```
@@ -281,6 +295,7 @@ impl Mesh {
     ///    let face = &mesh.face(findex);
     ///    for vindex in mesh.vertices(face) {
     ///        let vertex = &mesh.vertex(vindex);
+    ///        println!("{:?}", vertex);
     ///    }
     /// }
     /// ```
@@ -311,11 +326,11 @@ impl Mesh {
     }
 
     pub fn face_mut(&mut self, index: FaceIndex) -> &mut Face {
-        &mut self.face_list[index.0]
+        &mut self.face_list[index.offset]
     }
 
     pub fn face(&self, index: FaceIndex) -> &Face {
-        if let Some(ref result) = self.face_list.get(index.0) {
+        if let Some(ref result) = self.face_list.get(index.offset) {
             result
         } else {
             &self.face_list[0]
@@ -328,11 +343,11 @@ impl Mesh {
     }
 
     pub fn edge_mut(&mut self, index: EdgeIndex) -> &mut Edge {
-        &mut self.edge_list[index.0]
+        &mut self.edge_list[index.offset]
     }
 
     pub fn edge(&self, index: EdgeIndex) -> &Edge {
-        if let Some(result) = self.edge_list.get(index.0) {
+        if let Some(result) = self.edge_list.get(index.offset) {
             result
         } else {
             trace!("Unable to find an edge at {:?}", index);
@@ -346,11 +361,11 @@ impl Mesh {
     }
 
     pub fn vertex_mut(&mut self, index: VertexIndex) -> &mut Vertex {
-        &mut self.vertex_list[index.0]
+        &mut self.vertex_list[index.offset]
     }
 
     pub fn vertex(&self, index: VertexIndex) -> &Vertex {
-        if let Some(result) = self.vertex_list.get(index.0) {
+        if let Some(result) = self.vertex_list.get(index.offset) {
             result
         } else {
             &self.vertex_list[0]

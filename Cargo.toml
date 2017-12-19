@@ -18,18 +18,7 @@ readme = "README.md"
 
 [dependencies]
 log = "0.3"
-
-[dependencies.cgmath]
-optional = true
-version = "0.15"
-
-[dependencies.nalgebra]
-optional = true
-version = "0.13"
+cgmath = "0.15"
 
 [dev-dependencies]
 env_logger = "0.4"
-
-[features]
-default = ["cgmath"]
-with_nalgebra = ["nalgebra"]

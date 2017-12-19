@@ -7,11 +7,6 @@ use super::{
 };
 
 
-// pub trait Walk<Index, Step> {
-//     fn walk_from(&self, index: Index) -> Step;
-// }
-
-
 /// Function set for operations related to the Face struct
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
@@ -30,6 +25,22 @@ impl<'mesh> FaceFn<'mesh> {
         }
     }
 
+    pub fn area(self) -> f32 {
+        let area: f32 = 0.0;
+//        let v0 = self.edge().vertex();
+//        let mut v1 = v0.edge().next().vertex();
+//        let mut v2 = v1.edge().next().vertex();
+//        while v0.index != v2.index {
+//            let p0 = self.mesh.vertex(v0.index).point;
+//            let p1 = self.mesh.vertex(v1.index).point;
+//            let p2 = self.mesh.vertex(v2.index).point;
+//            // TODO: area += calc_area(p0, p1, p2);
+//            v1 = v2;
+//            v2 = v2.edge().next().vertex();
+//        }
+        return area;
+    }
+
     /// Convert this `FaceFn` to an `EdgeFn`.
     pub fn edge(self) -> EdgeFn<'mesh> {
         EdgeFn::new(self.face.edge_index, self.mesh)
@@ -41,12 +52,6 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
         self.face.is_valid()
     }
 }
-
-// impl<'mesh> Walk<FaceIndex, FaceFn<'mesh>> for Mesh {
-//     fn walk_from(&self, index: FaceIndex) -> FaceFn<'mesh> {
-//         FaceFn<'mesh>::new(index, &self)
-//     }
-// }
 
 
 /// Function set for operations related to the Edge struct
