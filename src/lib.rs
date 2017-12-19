@@ -2,8 +2,6 @@
 //!
 //! An index based half-edge mesh implementation.
 //!
-//! `Mesh` implements the fundamental storage operations and represents the principle
-//! grouping of all components. Most operations available are trait impls for `Mesh`.
 
 #[macro_use]
 extern crate log;
@@ -11,193 +9,44 @@ extern crate log;
 extern crate cgmath;
 
 use std::fmt;
-use std::marker;
-use std::cmp::Ordering;
 
+pub use core::*;
 pub use iterators::*;
 pub use operations::*;
 pub use function_sets::*;
 
-pub mod operations;
+pub mod core;
 pub mod iterators;
+pub mod operations;
 pub mod function_sets;
 
-pub trait Handle {}
-pub trait Kernel {}
-
-pub type Offset = usize;
-pub type Generation = usize;
-
-/// Our default value for uninitialized or unconnected components in the mesh.
-pub const INVALID_COMPONENT_OFFSET: Offset = 0;
-
-/// Marker trait for index types.
-#[derive(Default, Debug, Clone, Copy)]
-pub struct Index<T> {
-    offset: Offset,
-    generation: Generation,
-    _marker: marker::PhantomData<T>,
-}
-
-impl <T> Index<T> {
-    pub fn new(offset: Offset) -> Index<T> {
-        Index {
-            offset,
-            generation: 0,
-            _marker: marker::PhantomData::default(),
-        }
-    }
-
-    pub fn with_generation(offset: Offset, generation: Generation) -> Index<T> {
-        Index {
-            offset,
-            generation,
-            _marker: marker::PhantomData::default(),
-        }
-    }
-}
-
-impl <T> PartialOrd for Index<T> {
-    fn partial_cmp(&self, other: &Index<T>) -> Option<Ordering> {
-        // Only the offset should matter when it comes to ordering
-        self.offset.partial_cmp(&other.offset)
-    }
-}
-
-impl <T> PartialEq for Index<T> {
-    fn eq(&self, other: &Index<T>) -> bool {
-        self.offset.eq(&other.offset) && self.generation.eq(&other.generation)
-    }
-}
-
-/// An interface for asserting the validity of components in the mesh.
-pub trait IsValid {
-    /// A general blanket test for validity
-    fn is_valid(&self) -> bool;
-}
-
-impl <T> IsValid for Index<T> {
-    fn is_valid(&self) -> bool {
-        self.offset != INVALID_COMPONENT_OFFSET
-    }
-}
-
-/// Handle to Vertex data in a Mesh
-pub type VertexIndex = Index<Vertex>;
-impl Handle for VertexIndex {}
-
-/// Handle to Edge data in a Mesh
-pub type EdgeIndex = Index<Edge>;
-impl Handle for EdgeIndex {}
-
-/// Handle to Face data in a Mesh
-pub type FaceIndex = Index<Face>;
-impl Handle for FaceIndex {}
-
-/// Handle to Point data in a Mesh
-pub type PointIndex = Index<Point>;
-impl Handle for PointIndex {}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Point {
-    position: cgmath::Vector3<f64>,
-}
-
-impl Default for Point {
-    fn default() -> Point {
-        Point {
-            position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-        }
-    }
-}
-
-/// Represents the point where two edges meet.
-#[derive(Default, Debug, Copy, Clone)]
-pub struct Vertex {
-    /// Index of the outgoing edge
-    pub edge_index: EdgeIndex,
-    pub point_index: PointIndex,
-}
-
-impl Vertex {
-    pub fn from_edge(edge_index: EdgeIndex) -> Vertex {
-        Vertex {
-            edge_index,
-            point_index: PointIndex::default(),
-        }
-    }
-
-    pub fn from_point(point_index: PointIndex) -> Vertex {
-        Vertex {
-            edge_index: EdgeIndex::default(),
-            point_index,
-        }
-    }
-}
-
-impl IsValid for Vertex {
-    /// A vertex is considered "valid" as long as it has a valid edge index.
-    fn is_valid(&self) -> bool {
-        self.edge_index.is_valid()
-    }
-}
-
-/// The principle component in a half-edge mesh.
-#[derive(Default, Debug, Copy, Clone)]
-pub struct Edge {
-    /// The adjacent or 'twin' half-edge
-    pub twin_index: EdgeIndex,
-    /// The index of the next edge in the loop
-    pub next_index: EdgeIndex,
-    /// The index of the previous edge in the loop
-    pub prev_index: EdgeIndex,
-
-    /// The index of the face this edge loop defines
-    pub face_index: FaceIndex,
-
-    /// The index of the Vertex for this edge.
-    pub vertex_index: VertexIndex,
-}
-
-impl Edge {
-    /// Returns true when this edge has a previous and next edge.
-    pub fn is_connected(&self) -> bool {
-        self.next_index.is_valid() && self.prev_index.is_valid()
-    }
-}
-
-impl IsValid for Edge {
-    /// An Edge is valid when it has a twin and a vertex
-    fn is_valid(&self) -> bool {
-        self.vertex_index.is_valid() && self.twin_index.is_valid()
-    }
-}
-
-
-/// A face is defined by the looping connectivity of edges.
-#[derive(Default, Debug, Copy, Clone)]
-pub struct Face {
-    /// The "root" of an edge loop that defines this face.
-    pub edge_index: EdgeIndex,
-}
-
-impl Face {
-    pub fn new(edge_index: EdgeIndex) -> Face {
-        Face { edge_index }
-    }
-}
-
-impl IsValid for Face {
-    /// A face is considered "valid" as long as it has an edge index
-    /// other than `INVALID_COMPONENT_INDEX`
-    fn is_valid(&self) -> bool {
-        self.edge_index.is_valid()
-    }
-}
 
 pub type EdgeList = Vec<Edge>;
 pub type FaceList = Vec<Face>;
 pub type VertexList = Vec<Vertex>;
+pub type PointList = Vec<Point>;
+
+/// Storage interface for Mesh types
+#[derive(Debug)]
+pub struct DefaultKernel {
+    edge_list: EdgeList,
+    face_list: FaceList,
+    vertex_list: VertexList,
+    point_list: PointList
+}
+
+impl DefaultKernel {
+    pub fn new() -> DefaultKernel {
+        DefaultKernel {
+            edge_list: vec![ Edge::default() ],
+            face_list: vec![ Face::default() ],
+            vertex_list: vec![ Vertex::default() ],
+            point_list: vec![ Point::default() ],
+        }
+    }
+}
+
+//impl Kernel for DefaultKernel {}
 
 #[derive(Clone)]
 pub struct Mesh {

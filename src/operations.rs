@@ -4,7 +4,7 @@
 
 use super::iterators::*;
 use super::{Vertex, VertexIndex, Edge, EdgeIndex,
-            Face, FaceIndex, Mesh, IsValid, Handle};
+            Face, FaceIndex, Mesh, IsValid, ComponentIndex};
 
 pub mod edge {
     //! Operation parameters for creating and modifying edges.
@@ -73,7 +73,7 @@ pub mod triangle {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Interface for adding elements to a `Mesh`.
-pub trait AddGeometry<Descriptor, I: Handle> {
+pub trait AddGeometry<Descriptor, I: ComponentIndex> {
     fn add(&mut self, descriptor: Descriptor) -> I;
 }
 
@@ -247,19 +247,15 @@ impl AddGeometry<edge::FromVerts, EdgeIndex> for Mesh {
 
         let edge_a = Edge {
             twin_index: eindex_b,
-            next_index: EdgeIndex::default(),
-            prev_index: EdgeIndex::default(),
-            face_index: FaceIndex::default(),
-            vertex_index: verts.0
+            vertex_index: verts.0,
+            ..Edge::default()
         };
         self.vertex_mut(verts.0).edge_index = eindex_a;
 
         let edge_b = Edge {
             twin_index: eindex_a,
-            next_index: EdgeIndex::default(),
-            prev_index: EdgeIndex::default(),
-            face_index: FaceIndex::default(),
-            vertex_index: verts.1
+            vertex_index: verts.1,
+            ..Edge::default()
         };
         self.vertex_mut(verts.1).edge_index = eindex_b;
 
@@ -308,7 +304,7 @@ impl AddGeometry<edge::CloseLoop, EdgeIndex> for Mesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Interface for removing components from a `Mesh` by index.
-pub trait RemoveGeometry<T: Handle> {
+pub trait RemoveGeometry<T: ComponentIndex> {
     fn remove(&mut self, index: T);
 }
 
