@@ -4,7 +4,7 @@
 
 use super::iterators::*;
 use super::{Vertex, VertexIndex, Edge, EdgeIndex,
-            Face, FaceIndex, Mesh, IsValid, ComponentIndex};
+            Face, FaceIndex, Mesh, IsValid, ElementIndex};
 
 pub mod edge {
     //! Operation parameters for creating and modifying edges.
@@ -73,7 +73,7 @@ pub mod triangle {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Interface for adding elements to a `Mesh`.
-pub trait AddGeometry<Descriptor, I: ComponentIndex> {
+pub trait AddGeometry<Descriptor, I: ElementIndex> {
     fn add(&mut self, descriptor: Descriptor) -> I;
 }
 
@@ -304,7 +304,7 @@ impl AddGeometry<edge::CloseLoop, EdgeIndex> for Mesh {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Interface for removing components from a `Mesh` by index.
-pub trait RemoveGeometry<T: ComponentIndex> {
+pub trait RemoveGeometry<T: ElementIndex> {
     fn remove(&mut self, index: T);
 }
 

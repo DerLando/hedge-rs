@@ -21,32 +21,19 @@ pub mod operations;
 pub mod function_sets;
 
 
+/// Storage interface for Mesh types
+#[derive(Debug, Default)]
+pub struct DefaultKernel {
+    edge_buffer: ElementBuffer<Edge>,
+    face_buffer: ElementBuffer<Face>,
+    vertex_buffer: ElementBuffer<Vertex>,
+    point_buffer: ElementBuffer<Point>,
+}
+
 pub type EdgeList = Vec<Edge>;
 pub type FaceList = Vec<Face>;
 pub type VertexList = Vec<Vertex>;
 pub type PointList = Vec<Point>;
-
-/// Storage interface for Mesh types
-#[derive(Debug)]
-pub struct DefaultKernel {
-    edge_list: EdgeList,
-    face_list: FaceList,
-    vertex_list: VertexList,
-    point_list: PointList
-}
-
-impl DefaultKernel {
-    pub fn new() -> DefaultKernel {
-        DefaultKernel {
-            edge_list: vec![ Edge::default() ],
-            face_list: vec![ Face::default() ],
-            vertex_list: vec![ Vertex::default() ],
-            point_list: vec![ Point::default() ],
-        }
-    }
-}
-
-//impl Kernel for DefaultKernel {}
 
 #[derive(Clone)]
 pub struct Mesh {

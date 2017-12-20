@@ -1,13 +1,16 @@
 
-use super::{Index, IsValid, ComponentIndex, Component, VertexIndex, FaceIndex, Generation};
+use super::{Index, IsValid, ElementIndex, ElementProperties, MeshElement, ElementStatus,
+            VertexIndex, FaceIndex};
 
 /// Handle to Edge data in a Mesh
 pub type EdgeIndex = Index<Edge>;
-impl ComponentIndex for EdgeIndex {}
+impl ElementIndex for EdgeIndex {}
 
 /// The principle component in a half-edge mesh.
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Edge {
+    pub _props: ElementProperties,
+
     /// The adjacent or 'twin' half-edge
     pub twin_index: EdgeIndex,
     /// The index of the next edge in the loop
@@ -20,8 +23,6 @@ pub struct Edge {
 
     /// The index of the Vertex for this edge.
     pub vertex_index: VertexIndex,
-
-    pub generation: Generation,
 }
 
 impl Edge {
@@ -35,10 +36,19 @@ impl IsValid for Edge {
     /// An Edge is valid when it has a valid twin index, a valid vertex index
     /// and `is_connected`
     fn is_valid(&self) -> bool {
-        self.vertex_index.is_valid() &&
+        self._props.status == ElementStatus::ACTIVE &&
+            self.vertex_index.is_valid() &&
             self.twin_index.is_valid() &&
             self.is_connected()
     }
 }
 
-impl Component for Edge {}
+impl MeshElement for Edge {
+    fn props(&self) -> &ElementProperties {
+        &self._props
+    }
+
+    fn props_mut(&mut self) -> &mut ElementProperties {
+        &mut self._props
+    }
+}
