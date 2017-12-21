@@ -7,7 +7,7 @@ pub type EdgeIndex = Index<Edge>;
 impl ElementIndex for EdgeIndex {}
 
 /// The principle component in a half-edge mesh.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Edge {
     pub _props: ElementProperties,
 

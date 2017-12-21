@@ -18,7 +18,6 @@ mod edge;
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_OFFSET: Offset = 0;
 
-pub type Tag = usize;
 pub type Offset = usize;
 pub type Generation = usize;
 pub type Position = Vector3<f64>;
@@ -31,12 +30,14 @@ pub trait IsValid {
 }
 
 /// Marker trait for index types.
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone)]
 pub struct Index<T> {
     pub offset: Offset,
     pub generation: Generation,
     _marker: marker::PhantomData<T>,
 }
+
+impl <T: Clone> Copy for Index<T> {}
 
 impl <T> Index<T> {
     pub fn new(offset: Offset) -> Index<T> {
@@ -99,11 +100,11 @@ impl Default for ElementStatus {
 }
 
 /// The 3 fields our component buffers needs to do its work
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct ElementProperties {
     pub status: ElementStatus,
     pub generation: Generation,
-    pub tag: Tag,
+    pub tag: Cell<u32>,
 }
 
 ///

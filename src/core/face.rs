@@ -8,7 +8,7 @@ pub type FaceIndex = Index<Face>;
 impl ElementIndex for FaceIndex {}
 
 /// A face is defined by the looping connectivity of edges.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Face {
     pub _props: ElementProperties,
 

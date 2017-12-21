@@ -7,7 +7,7 @@ pub type VertexIndex = Index<Vertex>;
 impl ElementIndex for VertexIndex {}
 
 /// Represents the point where two edges meet.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Vertex {
     pub _props: ElementProperties,
 

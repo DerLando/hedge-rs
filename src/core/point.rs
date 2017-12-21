@@ -7,7 +7,7 @@ use super::{Index, MeshElement, ElementProperties, ElementStatus,
 pub type PointIndex = Index<Point>;
 impl ElementIndex for PointIndex {}
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Point {
     pub _props: ElementProperties,
     pub position: Position,
