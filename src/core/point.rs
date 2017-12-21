@@ -1,9 +1,7 @@
 
-use cgmath::Vector3;
 
-use super::{Index, MeshElement, ElementProperties, ElementStatus, ElementIndex, IsValid};
-
-pub type Position = Vector3<f64>;
+use super::{Index, MeshElement, ElementProperties, ElementStatus,
+            ElementIndex, IsValid, Position};
 
 /// Handle to Point data in a Mesh
 pub type PointIndex = Index<Point>;

@@ -2,6 +2,7 @@
 use std::fmt;
 use std::marker;
 use std::cmp::Ordering;
+use cgmath::Vector3;
 
 pub use self::point::*;
 pub use self::vertex::*;
@@ -19,39 +20,13 @@ pub const INVALID_COMPONENT_OFFSET: Offset = 0;
 pub type Tag = usize;
 pub type Offset = usize;
 pub type Generation = usize;
+pub type Position = Vector3<f64>;
+pub type Normal = Vector3<f64>;
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
     /// A general blanket test for validity
     fn is_valid(&self) -> bool;
-}
-
-/// Interface for kernel implementations
-pub trait Kernel {
-    fn edge_count(&self) -> usize;
-    fn face_count(&self) -> usize;
-    fn vertex_count(&self) -> usize;
-    fn point_count(&self) -> usize;
-
-    fn get_edge(&self, index: EdgeIndex) -> &Edge;
-    fn get_face(&self, index: FaceIndex) -> &Face;
-    fn get_vertex(&self, index: VertexIndex) -> &Vertex;
-    fn get_point(&self, index: PointIndex) -> &Point;
-
-    fn get_edge_mut(&mut self, index: EdgeIndex) -> Option<&mut Edge>;
-    fn get_face_mut(&mut self, index: FaceIndex) -> Option<&mut Face>;
-    fn get_vertex_mut(&mut self, index: VertexIndex) -> Option<&mut Vertex>;
-    fn get_point_mut(&mut self, index: PointIndex) -> Option<&mut Point>;
-
-    fn add_edge(&mut self, edge: Edge) -> EdgeIndex;
-    fn add_face(&mut self, face: Face) -> FaceIndex;
-    fn add_vertex(&mut self, vertex: Vertex) -> VertexIndex;
-    fn add_point(&mut self, point: Point) -> PointIndex;
-
-    fn remove_edge(&mut self, index: EdgeIndex);
-    fn remove_face(&mut self, index: FaceIndex);
-    fn remove_vertex(&mut self, index: VertexIndex);
-    fn remove_point(&mut self, index: PointIndex);
 }
 
 /// Marker trait for index types.
@@ -134,8 +109,8 @@ pub struct ElementProperties {
 ///
 #[derive(Default)]
 pub struct ElementBuffer<T: MeshElement + Default> {
-    free_cells: Vec< Index<T> >,
-    buffer: Vec<T>,
+    pub free_cells: Vec< Index<T> >,
+    pub buffer: Vec<T>,
 }
 
 impl <T: MeshElement + Default> fmt::Debug for ElementBuffer<T> {
@@ -148,7 +123,7 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
     pub fn new() -> ElementBuffer<T> {
         ElementBuffer {
             free_cells: Vec::new(),
-            buffer: vec![ T::default() ]
+            buffer: vec![ T::default() ],
         }
     }
 

@@ -11,41 +11,115 @@ extern crate cgmath;
 use std::fmt;
 
 pub use core::*;
-pub use iterators::*;
-pub use operations::*;
 pub use function_sets::*;
 
 pub mod core;
-pub mod iterators;
-pub mod operations;
 pub mod function_sets;
 
 
 /// Storage interface for Mesh types
 #[derive(Debug, Default)]
-pub struct DefaultKernel {
+pub struct Kernel {
     edge_buffer: ElementBuffer<Edge>,
     face_buffer: ElementBuffer<Face>,
     vertex_buffer: ElementBuffer<Vertex>,
     point_buffer: ElementBuffer<Point>,
 }
 
-pub type EdgeList = Vec<Edge>;
-pub type FaceList = Vec<Face>;
-pub type VertexList = Vec<Vertex>;
-pub type PointList = Vec<Point>;
+impl Kernel {
+    pub fn edge_count(&self) -> usize {
+        self.edge_buffer.len()
+    }
 
-#[derive(Clone)]
+    pub fn face_count(&self) -> usize {
+        self.face_buffer.len()
+    }
+
+    pub fn vertex_count(&self) -> usize {
+        self.vertex_buffer.len()
+    }
+
+    pub fn point_count(&self) -> usize {
+        self.point_buffer.len()
+    }
+
+    pub fn get_edge(&self, index: &EdgeIndex) -> &Edge {
+        self.edge_buffer.get(index)
+    }
+
+    pub fn get_face(&self, index: &FaceIndex) -> &Face {
+        self.face_buffer.get(index)
+    }
+
+    pub fn get_vertex(&self, index: &VertexIndex) -> &Vertex {
+        self.vertex_buffer.get(index)
+    }
+
+    pub fn get_point(&self, index: &PointIndex) -> &Point {
+        self.point_buffer.get(index)
+    }
+
+    pub fn get_edge_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
+        self.edge_buffer.get_mut(index)
+    }
+
+    pub fn get_face_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
+        self.face_buffer.get_mut(index)
+    }
+
+    pub fn get_vertex_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
+        self.vertex_buffer.get_mut(index)
+    }
+
+    pub fn get_point_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
+        self.point_buffer.get_mut(index)
+    }
+
+    pub fn add_edge(&mut self, edge: Edge) -> EdgeIndex {
+        self.edge_buffer.add(edge)
+    }
+
+    pub fn add_face(&mut self, face: Face) -> FaceIndex {
+        self.face_buffer.add(face)
+    }
+
+    pub fn add_vertex(&mut self, vertex: Vertex) -> VertexIndex {
+        self.vertex_buffer.add(vertex)
+    }
+
+    pub fn add_point(&mut self, point: Point) -> PointIndex {
+        self.point_buffer.add(point)
+    }
+
+    pub fn remove_edge(&mut self, index: EdgeIndex) {
+        self.edge_buffer.remove(index);
+    }
+
+    pub fn remove_face(&mut self, index: FaceIndex) {
+        self.face_buffer.remove(index);
+    }
+
+    pub fn remove_vertex(&mut self, index: VertexIndex) {
+        self.vertex_buffer.remove(index);
+    }
+
+    pub fn remove_point(&mut self, index: PointIndex) {
+        self.point_buffer.remove(index);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 pub struct Mesh {
-    edge_list: EdgeList,
-    face_list: FaceList,
-    vertex_list: VertexList,
+    pub kernel: Kernel
 }
 
 impl fmt::Debug for Mesh {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Half-Edge Mesh {{ {} vertices, {} edges, {} faces }}",
-               self.num_vertices(), self.num_edges(), self.num_faces())
+        write!(f, "Half-Edge Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
+               self.kernel.point_count(), self.kernel.vertex_count(),
+               self.kernel.edge_count(), self.kernel.face_count())
     }
 }
 
@@ -56,168 +130,23 @@ impl Mesh {
     /// Vec comes from the blog http://ourmachinery.com/post/defaulting-to-zero/
     pub fn new() -> Mesh {
         Mesh {
-            edge_list: vec! [ Edge::default() ],
-            face_list: vec! [ Face::default() ],
-            vertex_list: vec! [ Vertex::default() ],
+            kernel: Kernel::default()
         }
-    }
-
-    /// Connects the two edges as part of an edge loop.
-    ///
-    /// _In debug builds we assert that neither index is the default index._
-    pub fn connect_edges(&mut self, prev: EdgeIndex, next: EdgeIndex) {
-        debug_assert!(prev.is_valid());
-        debug_assert!(next.is_valid());
-        self.edge_mut(prev).next_index = next;
-        self.edge_mut(next).prev_index = prev;
-        trace!("Connected {:?} -> {:?}", prev, next);
-    }
-
-    pub fn is_boundary_edge(&self, eindex: EdgeIndex) -> bool {
-        debug_assert!(eindex.is_valid());
-        debug_assert!(self.edge(eindex).is_valid());
-        debug_assert!(self.edge_fn(eindex).twin().is_valid());
-        !self.edge_fn(eindex).face().is_valid() ||
-            !self.edge_fn(eindex).twin().face().is_valid()
-    }
-
-    pub fn foreach_edge_mut<F>(&mut self, eindex: EdgeIndex, mut callback: F)
-        where F: FnMut(&mut Edge)
-    {
-        let edge_indices: Vec<EdgeIndex> = EdgeLoop::new(eindex, &self.edge_list).collect();
-        for index in edge_indices {
-            let edge = &mut self.edge_mut(index);
-            callback(edge);
-        }
-    }
-
-    /// Returns a `Faces` iterator for this mesh.
-    ///
-    /// ```
-    /// use hedge::*;
-    /// let mesh = Mesh::new();
-    /// for index in mesh.faces() {
-    ///    let face = &mesh.face(index);
-    ///    println!("{:?}", face);
-    /// }
-    /// ```
-    pub fn faces(&self) -> Faces {
-        Faces::new(self.face_list.len())
-    }
-
-    /// Returns an `EdgeLoop` iterator for the edges around the specified face.
-    ///
-    /// ```
-    /// use hedge::*;
-    /// let mesh = Mesh::new();
-    /// for findex in mesh.faces() {
-    ///    let face = &mesh.face(findex);
-    ///    for eindex in mesh.edges(face) {
-    ///        let edge = &mesh.edge(eindex);
-    ///        println!("{:?}", edge);
-    ///    }
-    /// }
-    /// ```
-    pub fn edges(&self, face: &Face) -> EdgeLoop {
-        EdgeLoop::new(face.edge_index, &self.edge_list)
-    }
-
-    /// Returns an `EdgeLoopVertices` iterator for the vertices around the specified face.
-    ///
-    /// ```
-    /// use hedge::*;
-    /// let mesh = Mesh::new();
-    /// for findex in mesh.faces() {
-    ///    let face = &mesh.face(findex);
-    ///    for vindex in mesh.vertices(face) {
-    ///        let vertex = &mesh.vertex(vindex);
-    ///        println!("{:?}", vertex);
-    ///    }
-    /// }
-    /// ```
-    pub fn vertices(&self, face: &Face) -> EdgeLoopVertices {
-        EdgeLoopVertices::new(face.edge_index, &self.edge_list)
-    }
-
-    pub fn edges_around_vertex(&self, vertex: &Vertex) -> EdgesAroundVertex {
-        EdgesAroundVertex::new(vertex.edge_index, &self)
     }
 
     /// Returns a `FaceFn` for the given index.
-    ///
-    /// ```
-    /// use hedge::*;
-    /// let mut mesh = Mesh::new();
-    ///
-    /// let v1 = mesh.add(Vertex::default());
-    /// let v2 = mesh.add(Vertex::default());
-    /// let v3 = mesh.add(Vertex::default());
-    ///
-    /// let f1 = mesh.add(triangle::FromVerts(v1, v2, v3));
-    ///
-    /// assert_eq!(mesh.face_fn(f1).edge().next().vertex().index, v2);
-    /// ```
-    pub fn face_fn(&self, index: FaceIndex) -> FaceFn {
+    pub fn face(&self, index: FaceIndex) -> FaceFn {
         FaceFn::new(index, &self)
     }
 
-    pub fn face_mut(&mut self, index: FaceIndex) -> &mut Face {
-        &mut self.face_list[index.offset]
-    }
-
-    pub fn face(&self, index: FaceIndex) -> &Face {
-        if let Some(ref result) = self.face_list.get(index.offset) {
-            result
-        } else {
-            &self.face_list[0]
-        }
-    }
-
     /// Returns an `EdgeFn` for the given index.
-    pub fn edge_fn(&self, index: EdgeIndex) -> EdgeFn {
+    pub fn edge(&self, index: EdgeIndex) -> EdgeFn {
         EdgeFn::new(index, &self)
     }
 
-    pub fn edge_mut(&mut self, index: EdgeIndex) -> &mut Edge {
-        &mut self.edge_list[index.offset]
-    }
-
-    pub fn edge(&self, index: EdgeIndex) -> &Edge {
-        if let Some(result) = self.edge_list.get(index.offset) {
-            result
-        } else {
-            trace!("Unable to find an edge at {:?}", index);
-            &self.edge_list[0]
-        }
-    }
-
     /// Returns a `VertexFn` for the given index.
-    pub fn vertex_fn(&self, index: VertexIndex) -> VertexFn {
+    pub fn vertex(&self, index: VertexIndex) -> VertexFn {
         VertexFn::new(index, &self)
-    }
-
-    pub fn vertex_mut(&mut self, index: VertexIndex) -> &mut Vertex {
-        &mut self.vertex_list[index.offset]
-    }
-
-    pub fn vertex(&self, index: VertexIndex) -> &Vertex {
-        if let Some(result) = self.vertex_list.get(index.offset) {
-            result
-        } else {
-            &self.vertex_list[0]
-        }
-    }
-
-    pub fn num_vertices(&self) -> usize {
-        self.vertex_list.len() - 1
-    }
-
-    pub fn num_faces(&self) -> usize {
-        self.face_list.len() - 1
-    }
-
-    pub fn num_edges(&self) -> usize {
-        self.edge_list.len() - 1
     }
 }
 
