@@ -27,99 +27,20 @@ pub struct Kernel {
 }
 
 impl Kernel {
-    pub fn edge_count(&self) -> usize {
-        self.edge_buffer.len()
-    }
-
-    pub fn face_count(&self) -> usize {
-        self.face_buffer.len()
-    }
-
-    pub fn vertex_count(&self) -> usize {
-        self.vertex_buffer.len()
-    }
-
-    pub fn point_count(&self) -> usize {
-        self.point_buffer.len()
-    }
-
-    pub fn get_edge(&self, index: &EdgeIndex) -> &Edge {
-        self.edge_buffer.get(index)
-    }
-
-    pub fn get_face(&self, index: &FaceIndex) -> &Face {
-        self.face_buffer.get(index)
-    }
-
-    pub fn get_vertex(&self, index: &VertexIndex) -> &Vertex {
-        self.vertex_buffer.get(index)
-    }
-
-    pub fn get_point(&self, index: &PointIndex) -> &Point {
-        self.point_buffer.get(index)
-    }
-
-    pub fn get_edge_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
-        self.edge_buffer.get_mut(index)
-    }
-
-    pub fn get_face_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
-        self.face_buffer.get_mut(index)
-    }
-
-    pub fn get_vertex_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
-        self.vertex_buffer.get_mut(index)
-    }
-
-    pub fn get_point_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
-        self.point_buffer.get_mut(index)
-    }
-
-    pub fn add_edge(&mut self, edge: Edge) -> EdgeIndex {
-        self.edge_buffer.add(edge)
-    }
-
-    pub fn add_face(&mut self, face: Face) -> FaceIndex {
-        self.face_buffer.add(face)
-    }
-
-    pub fn add_vertex(&mut self, vertex: Vertex) -> VertexIndex {
-        self.vertex_buffer.add(vertex)
-    }
-
-    pub fn add_point(&mut self, point: Point) -> PointIndex {
-        self.point_buffer.add(point)
-    }
-
-    pub fn remove_edge(&mut self, index: EdgeIndex) {
-        self.edge_buffer.remove(index);
-    }
-
-    pub fn remove_face(&mut self, index: FaceIndex) {
-        self.face_buffer.remove(index);
-    }
-
-    pub fn remove_vertex(&mut self, index: VertexIndex) {
-        self.vertex_buffer.remove(index);
-    }
-
-    pub fn remove_point(&mut self, index: PointIndex) {
-        self.point_buffer.remove(index);
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 pub struct Mesh {
-    pub kernel: Kernel
+    kernel: Kernel
 }
 
 impl fmt::Debug for Mesh {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Half-Edge Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
-               self.kernel.point_count(), self.kernel.vertex_count(),
-               self.kernel.edge_count(), self.kernel.face_count())
+               self.point_count(), self.vertex_count(),
+               self.edge_count(), self.face_count())
     }
 }
 
@@ -139,14 +60,142 @@ impl Mesh {
         FaceFn::new(index, &self)
     }
 
+    pub fn face_count(&self) -> usize {
+        self.kernel.face_buffer.len() - 1
+    }
+
     /// Returns an `EdgeFn` for the given index.
     pub fn edge(&self, index: EdgeIndex) -> EdgeFn {
         EdgeFn::new(index, &self)
     }
 
+    pub fn edge_count(&self) -> usize {
+        self.kernel.edge_buffer.len() - 1
+    }
+
     /// Returns a `VertexFn` for the given index.
     pub fn vertex(&self, index: VertexIndex) -> VertexFn {
         VertexFn::new(index, &self)
+    }
+
+    pub fn vertex_count(&self) -> usize {
+        self.kernel.vertex_buffer.len() - 1
+    }
+
+    pub fn point(&self, index: PointIndex) -> &Point {
+        self.kernel.point_buffer.get(&index)
+    }
+
+    pub fn point_count(&self) -> usize {
+        self.kernel.point_buffer.len() - 1
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Adding elements
+
+impl AddElement<Vertex> for Mesh {
+    fn add(&mut self, vertex: Vertex) -> VertexIndex {
+        self.kernel.vertex_buffer.add(vertex)
+    }
+}
+
+impl AddElement<Edge> for Mesh {
+    fn add(&mut self, edge: Edge) -> EdgeIndex {
+        self.kernel.edge_buffer.add(edge)
+    }
+}
+
+impl AddElement<Face> for Mesh {
+    fn add(&mut self, face: Face) -> FaceIndex {
+        self.kernel.face_buffer.add(face)
+    }
+}
+
+impl AddElement<Point> for Mesh {
+    fn add(&mut self, point: Point) -> PointIndex {
+        self.kernel.point_buffer.add(point)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Removing elements
+
+impl RemoveElement<Vertex> for Mesh {
+    fn remove(&mut self, index: VertexIndex) {
+        self.kernel.vertex_buffer.remove(index);
+    }
+}
+
+impl RemoveElement<Edge> for Mesh {
+    fn remove(&mut self, index: EdgeIndex) {
+        self.kernel.edge_buffer.remove(index);
+    }
+}
+
+impl RemoveElement<Face> for Mesh {
+    fn remove(&mut self, index: FaceIndex) {
+        self.kernel.face_buffer.remove(index);
+    }
+}
+
+impl RemoveElement<Point> for Mesh {
+    fn remove(&mut self, index: PointIndex) {
+        self.kernel.point_buffer.remove(index);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Get immutable references
+
+impl GetElement<Vertex> for Mesh {
+    fn get(&self, index: &VertexIndex) -> &Vertex {
+        self.kernel.vertex_buffer.get(index)
+    }
+}
+
+impl GetElement<Edge> for Mesh {
+    fn get(&self, index: &EdgeIndex) -> &Edge {
+        self.kernel.edge_buffer.get(index)
+    }
+}
+
+impl GetElement<Face> for Mesh {
+    fn get(&self, index: &FaceIndex) -> &Face {
+        self.kernel.face_buffer.get(index)
+    }
+}
+
+impl GetElement<Point> for Mesh {
+    fn get(&self, index: &PointIndex) -> &Point {
+        self.kernel.point_buffer.get(index)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Get mutable references
+
+impl GetElementMut<Vertex> for Mesh {
+    fn get_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
+        self.kernel.vertex_buffer.get_mut(index)
+    }
+}
+
+impl GetElementMut<Edge> for Mesh {
+    fn get_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
+        self.kernel.edge_buffer.get_mut(index)
+    }
+}
+
+impl GetElementMut<Face> for Mesh {
+    fn get_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
+        self.kernel.face_buffer.get_mut(index)
+    }
+}
+
+impl GetElementMut<Point> for Mesh {
+    fn get_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
+        self.kernel.point_buffer.get_mut(index)
     }
 }
 

@@ -1,10 +1,6 @@
 //! Facades over a mesh and component index to enable fluent adjcency traversals.
 
-use super::{
-    Edge, Face, Vertex, Point, Mesh, Normal,
-    EdgeIndex, FaceIndex, VertexIndex,
-    IsValid
-};
+use super::*;
 
 use cgmath::prelude::*;
 
@@ -22,7 +18,7 @@ impl<'mesh> FaceFn<'mesh> {
     pub fn new(index: FaceIndex, mesh: &'mesh Mesh) -> FaceFn {
         FaceFn {
             mesh,
-            face: &mesh.kernel.get_face(&index),
+            face: &mesh.get(&index),
             index
         }
     }
@@ -74,7 +70,7 @@ impl<'mesh> EdgeFn<'mesh> {
     pub fn new(index: EdgeIndex, mesh: &'mesh Mesh) -> EdgeFn {
         EdgeFn {
             mesh,
-            edge: &mesh.kernel.get_edge(&index),
+            edge: &mesh.get(&index),
             index
         }
     }
@@ -125,7 +121,7 @@ impl<'mesh> VertexFn<'mesh> {
     pub fn new(index: VertexIndex, mesh: &'mesh Mesh) -> VertexFn {
         VertexFn {
             mesh,
-            vertex: &mesh.kernel.get_vertex(&index),
+            vertex: &mesh.get(&index),
             index
         }
     }
@@ -149,7 +145,7 @@ impl<'mesh> VertexFn<'mesh> {
     }
 
     pub fn point(&self) -> &'mesh Point {
-        self.mesh.kernel.get_point(&self.vertex.point_index)
+        self.mesh.get(&self.vertex.point_index)
     }
 }
 

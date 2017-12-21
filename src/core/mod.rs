@@ -2,6 +2,7 @@
 use std::fmt;
 use std::marker;
 use std::cmp::Ordering;
+use std::cell::Cell;
 use cgmath::Vector3;
 
 pub use self::point::*;
@@ -93,7 +94,7 @@ pub enum ElementStatus {
 
 impl Default for ElementStatus {
     fn default() -> Self {
-        ElementStatus::ACTIVE
+        ElementStatus::INACTIVE
     }
 }
 
@@ -102,15 +103,24 @@ impl Default for ElementStatus {
 pub struct ElementProperties {
     pub status: ElementStatus,
     pub generation: Generation,
+    pub tag: Tag,
 }
 
 ///
 /// Blah blah blah
 ///
-#[derive(Default)]
 pub struct ElementBuffer<T: MeshElement + Default> {
     pub free_cells: Vec< Index<T> >,
     pub buffer: Vec<T>,
+}
+
+impl <T: MeshElement + Default> Default for ElementBuffer<T> {
+    fn default() -> ElementBuffer<T> {
+        ElementBuffer {
+            free_cells: Vec::new(),
+            buffer: vec![ T::default() ],
+        }
+    }
 }
 
 impl <T: MeshElement + Default> fmt::Debug for ElementBuffer<T> {
@@ -120,12 +130,6 @@ impl <T: MeshElement + Default> fmt::Debug for ElementBuffer<T> {
 }
 
 impl <T: MeshElement + Default> ElementBuffer<T> {
-    pub fn new() -> ElementBuffer<T> {
-        ElementBuffer {
-            free_cells: Vec::new(),
-            buffer: vec![ T::default() ],
-        }
-    }
 
     pub fn len(&self) -> usize {
         self.buffer.len() - self.free_cells.len()
@@ -156,11 +160,14 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index.offset];
             *cell = element;
-            cell.props_mut().generation = index.generation;
+            let props = cell.props_mut();
+            props.generation = index.generation;
+            props.status = ElementStatus::ACTIVE;
             return index;
         } else {
             let index = Index::with_generation(self.buffer.len(), element.props().generation);
             self.buffer.push(element);
+            self.buffer[index.offset].props_mut().status = ElementStatus::ACTIVE;
             return index;
         }
     }
@@ -176,4 +183,24 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
             self.free_cells.push(removed);
         }
     }
+}
+
+/// Interface for adding elements to a `Mesh`.
+pub trait AddElement<E: MeshElement> {
+    fn add(&mut self, element: E) -> Index<E>;
+}
+
+/// Interface for removing elements to a `Mesh`.
+pub trait RemoveElement<E: MeshElement> {
+    fn remove(&mut self, index: Index<E>);
+}
+
+/// Interface for getting an element reference.
+pub trait GetElement<E: MeshElement> {
+    fn get(&self, index: &Index<E>) -> &E;
+}
+
+/// Interface for getting a mutable element reference.
+pub trait GetElementMut<E: MeshElement> {
+    fn get_mut(&mut self, index: &Index<E>) -> Option<&mut E>;
 }
