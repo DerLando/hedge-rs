@@ -135,26 +135,26 @@ fn can_add_points() {
     assert_eq!(mesh.kernel.point_buffer.len(), 2);
 }
 
-//#[test]
-//fn can_iterate_over_faces() {
-//    let _ = env_logger::init();
-//    let mut mesh = TestMesh::new();
-//    mesh.face_list.push(Face::new(EdgeIndex::new(1)));
-//    mesh.face_list.push(Face::new(EdgeIndex::new(4)));
-//    mesh.face_list.push(Face::new(EdgeIndex::new(7)));
-//
-//    assert_eq!(mesh.face_list.len(), 4);
-//
-//    let mut faces_iterated_over = 0;
-//
-//    for index in mesh.faces() {
-//        let face = &mesh.face(index);
-//        assert!(face.is_valid());
-//        faces_iterated_over += 1;
-//    }
-//
-//    assert_eq!(faces_iterated_over, 3);
-//}
+#[test]
+fn can_iterate_over_faces() {
+    let _ = env_logger::init();
+    let mut mesh = Mesh::new();
+
+    mesh.add(Face::new(EdgeIndex::new(1)));
+    mesh.add(Face::new(EdgeIndex::new(4)));
+    mesh.add(Face::new(EdgeIndex::new(7)));
+
+    assert_eq!(mesh.face_count(), 3);
+
+    let mut faces_iterated_over = 0;
+
+    for face in mesh.faces() {
+        assert!(face.is_valid());
+        faces_iterated_over += 1;
+    }
+
+    assert_eq!(faces_iterated_over, 3);
+}
 
 //#[test]
 //fn can_iterate_over_edges_of_face() {

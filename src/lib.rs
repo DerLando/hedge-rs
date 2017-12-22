@@ -9,12 +9,15 @@ extern crate log;
 extern crate cgmath;
 
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub use core::*;
 pub use function_sets::*;
+pub use iterators::*;
 
 pub mod core;
 pub mod function_sets;
+pub mod iterators;
 
 
 /// Storage interface for Mesh types
@@ -33,7 +36,8 @@ impl Kernel {
 
 
 pub struct Mesh {
-    kernel: Kernel
+    kernel: Kernel,
+    tag: AtomicUsize,
 }
 
 impl fmt::Debug for Mesh {
@@ -51,7 +55,8 @@ impl Mesh {
     /// Vec comes from the blog http://ourmachinery.com/post/defaulting-to-zero/
     pub fn new() -> Mesh {
         Mesh {
-            kernel: Kernel::default()
+            kernel: Kernel::default(),
+            tag: AtomicUsize::new(1),
         }
     }
 
@@ -62,6 +67,12 @@ impl Mesh {
 
     pub fn face_count(&self) -> usize {
         self.kernel.face_buffer.len() - 1
+    }
+
+    //pub fn faces<'mesh>(&self) -> FaceFnIterator<'mesh> {
+    pub fn faces<'mesh>(&'mesh self) -> FaceFnIterator<'mesh> {
+        let current_tag = self.tag.fetch_add(1, Ordering::SeqCst);
+        FaceFnIterator::new(current_tag, self.kernel.face_buffer.enumerate(), &self)
     }
 
     /// Returns an `EdgeFn` for the given index.

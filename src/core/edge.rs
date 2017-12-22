@@ -36,7 +36,7 @@ impl IsValid for Edge {
     /// An Edge is valid when it has a valid twin index, a valid vertex index
     /// and `is_connected`
     fn is_valid(&self) -> bool {
-        self._props.status == ElementStatus::ACTIVE &&
+        self._props.status.get() == ElementStatus::ACTIVE &&
             self.vertex_index.is_valid() &&
             self.twin_index.is_valid() &&
             self.is_connected()
@@ -46,9 +46,5 @@ impl IsValid for Edge {
 impl MeshElement for Edge {
     fn props(&self) -> &ElementProperties {
         &self._props
-    }
-
-    fn props_mut(&mut self) -> &mut ElementProperties {
-        &mut self._props
     }
 }

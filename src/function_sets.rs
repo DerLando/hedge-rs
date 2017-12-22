@@ -23,6 +23,12 @@ impl<'mesh> FaceFn<'mesh> {
         }
     }
 
+    pub fn from_index_and_item(index: FaceIndex, face: &'mesh Face, mesh: &'mesh Mesh) -> FaceFn<'mesh> {
+        FaceFn {
+            mesh, face, index
+        }
+    }
+
     fn calc_area(&self, p0: &Point, p1: &Point, p2: &Point) -> f64 {
         let a = p1.position - p0.position;
         let b = p2.position - p0.position;

@@ -3,6 +3,8 @@ use std::fmt;
 use std::marker;
 use std::cmp::Ordering;
 use std::cell::Cell;
+use std::slice::Iter;
+use std::iter::Enumerate;
 use cgmath::Vector3;
 
 pub use self::point::*;
@@ -18,6 +20,7 @@ mod edge;
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_OFFSET: Offset = 0;
 
+pub type Tag = usize;
 pub type Offset = usize;
 pub type Generation = usize;
 pub type Position = Vector3<f64>;
@@ -83,7 +86,6 @@ pub trait ElementIndex {}
 /// Components are expected to have a field `component: ComponentProperties`
 pub trait MeshElement: Default {
     fn props(&self) -> &ElementProperties;
-    fn props_mut(&mut self) -> &mut ElementProperties;
 }
 
 /// Whether or not a cell is current or 'removed'
@@ -102,9 +104,9 @@ impl Default for ElementStatus {
 /// The 3 fields our component buffers needs to do its work
 #[derive(Debug, Default, Clone)]
 pub struct ElementProperties {
-    pub status: ElementStatus,
-    pub generation: Generation,
-    pub tag: Cell<u32>,
+    pub generation: Cell<Generation>,
+    pub status: Cell<ElementStatus>,
+    pub tag: Cell<Tag>,
 }
 
 ///
@@ -136,11 +138,17 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
         self.buffer.len() - self.free_cells.len()
     }
 
+    pub fn enumerate<'mesh>(&'mesh self) -> Enumerate<Iter<'mesh, T>> {
+        let mut it = self.buffer.iter().enumerate();
+        let _ = it.next(); // Always skip the first element since we know it's invalid
+        return it;
+    }
+
     pub fn get(&self, index: &Index<T>) -> &T {
         let mut result = &self.buffer[0];
         if let Some(element) = self.buffer.get(index.offset) {
-            if index.generation == element.props().generation &&
-                element.props().status == ElementStatus::ACTIVE {
+            if index.generation == element.props().generation.get() &&
+                element.props().status.get() == ElementStatus::ACTIVE {
                 result = element;
             }
         }
@@ -149,8 +157,8 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
 
     pub fn get_mut(&mut self, index: &Index<T>) -> Option<&mut T> {
         let element = &mut self.buffer[index.offset];
-        if element.props().generation == index.generation &&
-            element.props().status == ElementStatus::ACTIVE {
+        if element.props().generation.get() == index.generation &&
+            element.props().status.get() == ElementStatus::ACTIVE {
             Some(element)
         } else {
             None
@@ -161,23 +169,23 @@ impl <T: MeshElement + Default> ElementBuffer<T> {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index.offset];
             *cell = element;
-            let props = cell.props_mut();
-            props.generation = index.generation;
-            props.status = ElementStatus::ACTIVE;
+            let props = cell.props();
+            props.generation.set(index.generation);
+            props.status.set(ElementStatus::ACTIVE);
             return index;
         } else {
-            let index = Index::with_generation(self.buffer.len(), element.props().generation);
+            let index = Index::with_generation(self.buffer.len(), element.props().generation.get());
+            element.props().status.set(ElementStatus::ACTIVE);
             self.buffer.push(element);
-            self.buffer[index.offset].props_mut().status = ElementStatus::ACTIVE;
             return index;
         }
     }
 
     pub fn remove(&mut self, index: Index<T>) {
         let removed = self.get_mut(&index).map(|cell| {
-            let props = cell.props_mut();
-            props.generation += 1;
-            props.status = ElementStatus::INACTIVE;
+            let props = cell.props();
+            props.generation.set(index.generation + 1);
+            props.status.set(ElementStatus::INACTIVE);
             Index::with_generation(index.offset, index.generation + 1)
         });
         if let Some(removed) = removed {

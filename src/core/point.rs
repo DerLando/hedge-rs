@@ -24,16 +24,12 @@ impl Default for Point {
 
 impl IsValid for Point {
     fn is_valid(&self) -> bool {
-        self._props.status == ElementStatus::ACTIVE
+        self._props.status.get() == ElementStatus::ACTIVE
     }
 }
 
 impl MeshElement for Point {
     fn props(&self) -> &ElementProperties {
         &self._props
-    }
-
-    fn props_mut(&mut self) -> &mut ElementProperties {
-        &mut self._props
     }
 }

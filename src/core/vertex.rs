@@ -36,16 +36,12 @@ impl Vertex {
 impl IsValid for Vertex {
     /// A vertex is considered "valid" as long as it has a valid edge index.
     fn is_valid(&self) -> bool {
-        self._props.status == ElementStatus::ACTIVE && self.edge_index.is_valid()
+        self._props.status.get() == ElementStatus::ACTIVE && self.edge_index.is_valid()
     }
 }
 
 impl MeshElement for Vertex {
     fn props(&self) -> &ElementProperties {
         &self._props
-    }
-
-    fn props_mut(&mut self) -> &mut ElementProperties {
-        &mut self._props
     }
 }
