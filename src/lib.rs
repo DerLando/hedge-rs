@@ -60,6 +60,10 @@ impl Mesh {
         }
     }
 
+    fn next_tag(&self) -> usize {
+        self.tag.fetch_add(1, Ordering::SeqCst)
+    }
+
     /// Returns a `FaceFn` for the given index.
     pub fn face(&self, index: FaceIndex) -> FaceFn {
         FaceFn::new(index, &self)
@@ -73,6 +77,11 @@ impl Mesh {
     pub fn faces<'mesh>(&'mesh self) -> FaceFnIterator<'mesh> {
         let current_tag = self.tag.fetch_add(1, Ordering::SeqCst);
         FaceFnIterator::new(current_tag, self.kernel.face_buffer.enumerate(), &self)
+    }
+
+    pub fn vertices<'mesh>(&'mesh self) -> VertexFnIterator<'mesh> {
+        //let current_tag = self.tag.fetch_add(1, Ordering::SeqCst);
+        VertexFnIterator::new(&self)
     }
 
     /// Returns an `EdgeFn` for the given index.

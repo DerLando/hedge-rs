@@ -156,6 +156,25 @@ fn can_iterate_over_faces() {
     assert_eq!(faces_iterated_over, 3);
 }
 
+#[test]
+fn can_iterate_over_vertices() {
+    let _ = env_logger::init();
+    let mut mesh = Mesh::new();
+
+    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+
+    let mut vertices_iterated_over = 0;
+
+    for vert in mesh.vertices() {
+        assert!(vert.is_valid());
+        vertices_iterated_over += 1;
+    }
+
+    assert_eq!(vertices_iterated_over, 3);
+}
+
 //#[test]
 //fn can_iterate_over_edges_of_face() {
 //    let _ = env_logger::init();
@@ -227,9 +246,9 @@ fn can_add_triangles_to_mesh() {
     let p1 = mesh.add(Point::default());
     let p2 = mesh.add(Point::default());
 
-    let v0 = mesh.add(Vertex::from_point(p0));
-    let v1 = mesh.add(Vertex::from_point(p1));
-    let v2 = mesh.add(Vertex::from_point(p2));
+    let _v0 = mesh.add(Vertex::from_point(p0));
+    let _v1 = mesh.add(Vertex::from_point(p1));
+    let _v2 = mesh.add(Vertex::from_point(p2));
 
     assert_eq!(mesh.vertex_count(), 3);
 

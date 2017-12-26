@@ -6,6 +6,71 @@ use std::slice::Iter;
 use std::iter::Enumerate;
 
 
+pub struct ElementEnumerator<'mesh, E: 'mesh + MeshElement> {
+    tag: Tag,
+    iter: Enumerate<Iter<'mesh, E>>,
+}
+
+impl<'mesh, E> ElementEnumerator<'mesh, E>
+    where E: 'mesh + MeshElement
+{
+    pub fn new(tag: Tag, iter: Enumerate<Iter<'mesh, E>>) -> ElementEnumerator<'mesh, E> {
+        debug!("New element enumerator");
+        ElementEnumerator {
+            tag,
+            iter,
+        }
+    }
+
+    fn next_element(&mut self) -> Option<(Index<E>, &'mesh E)> {
+        for (offset, element) in self.iter.by_ref() {
+            let props = element.props();
+            let is_next = props.status.get() == ElementStatus::ACTIVE &&
+                props.tag.get() != self.tag;
+            if is_next {
+                props.tag.set(self.tag);
+                let index = Index::with_generation(offset, props.generation.get());
+                return Some((index, element));
+            }
+        }
+        debug!("Element enumeration completed.");
+        return None;
+    }
+}
+
+type VertexEnumerator<'mesh> = ElementEnumerator<'mesh, Vertex>;
+//type FaceEnumerator<'mesh> = ElementEnumerator<'mesh, Face>;
+//type EdgeEnumerator<'mesh> = ElementEnumerator<'mesh, Edge>;
+//type PointEnumerator<'mesh> = ElementEnumerator<'mesh, Point>;
+
+pub struct VertexFnIterator<'mesh> {
+    enumerator: VertexEnumerator<'mesh>,
+    mesh: &'mesh Mesh,
+}
+
+impl<'mesh> VertexFnIterator<'mesh> {
+    pub fn new(mesh: &'mesh Mesh) -> VertexFnIterator<'mesh> {
+        VertexFnIterator {
+            enumerator: VertexEnumerator::new(mesh.next_tag(), mesh.kernel.vertex_buffer.enumerate()),
+            mesh,
+        }
+    }
+}
+
+impl<'mesh> Iterator for VertexFnIterator<'mesh> {
+    type Item = VertexFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((index, vert)) = self.enumerator.next_element() {
+            debug!("Found vertex {:?} - {:?}", index, vert);
+            return Some(VertexFn::from_index_and_item(index, vert, self.mesh));
+        }
+        return None;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 pub struct FaceFnIterator<'mesh> {
     tag: Tag,
     iter: Enumerate<Iter<'mesh, Face>>,

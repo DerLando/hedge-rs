@@ -5,6 +5,11 @@ use super::*;
 use cgmath::prelude::*;
 
 
+pub trait ElementFn<'mesh> {
+    //
+}
+
+
 /// Function set for operations related to the Face struct
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
@@ -129,6 +134,12 @@ impl<'mesh> VertexFn<'mesh> {
             mesh,
             vertex: &mesh.get(&index),
             index
+        }
+    }
+
+    pub fn from_index_and_item(index: VertexIndex, vertex: &'mesh Vertex, mesh: &'mesh Mesh) -> VertexFn<'mesh> {
+        VertexFn {
+            mesh, vertex, index
         }
     }
 

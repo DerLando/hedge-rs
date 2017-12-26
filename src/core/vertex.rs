@@ -18,6 +18,14 @@ pub struct Vertex {
 }
 
 impl Vertex {
+    pub fn new(edge_index: EdgeIndex, point_index: PointIndex) -> Vertex {
+        Vertex {
+            edge_index,
+            point_index,
+            ..Vertex::default()
+        }
+    }
+
     pub fn from_edge(edge_index: EdgeIndex) -> Vertex {
         Vertex {
             edge_index,
