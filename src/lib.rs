@@ -73,15 +73,8 @@ impl Mesh {
         self.kernel.face_buffer.len() - 1
     }
 
-    //pub fn faces<'mesh>(&self) -> FaceFnIterator<'mesh> {
     pub fn faces<'mesh>(&'mesh self) -> FaceFnIterator<'mesh> {
-        let current_tag = self.tag.fetch_add(1, Ordering::SeqCst);
-        FaceFnIterator::new(current_tag, self.kernel.face_buffer.enumerate(), &self)
-    }
-
-    pub fn vertices<'mesh>(&'mesh self) -> VertexFnIterator<'mesh> {
-        //let current_tag = self.tag.fetch_add(1, Ordering::SeqCst);
-        VertexFnIterator::new(&self)
+        FaceFnIterator::new(&self)
     }
 
     /// Returns an `EdgeFn` for the given index.
@@ -93,6 +86,10 @@ impl Mesh {
         self.kernel.edge_buffer.len() - 1
     }
 
+    pub fn edges<'mesh>(&'mesh self) -> EdgeFnIterator<'mesh> {
+        EdgeFnIterator::new(&self)
+    }
+
     /// Returns a `VertexFn` for the given index.
     pub fn vertex(&self, index: VertexIndex) -> VertexFn {
         VertexFn::new(index, &self)
@@ -100,6 +97,10 @@ impl Mesh {
 
     pub fn vertex_count(&self) -> usize {
         self.kernel.vertex_buffer.len() - 1
+    }
+
+    pub fn vertices<'mesh>(&'mesh self) -> VertexFnIterator<'mesh> {
+        VertexFnIterator::new(&self)
     }
 
     pub fn point(&self, index: PointIndex) -> &Point {

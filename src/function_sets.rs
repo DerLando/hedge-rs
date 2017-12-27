@@ -86,6 +86,12 @@ impl<'mesh> EdgeFn<'mesh> {
         }
     }
 
+    pub fn from_index_and_item(index: EdgeIndex, edge: &'mesh Edge, mesh: &'mesh Mesh) -> EdgeFn<'mesh> {
+        EdgeFn {
+            mesh, edge, index
+        }
+    }
+
     /// Convert this `EdgeFn` to an `EdgeFn` of it's next edge
     pub fn next(&self) -> EdgeFn<'mesh> {
         EdgeFn::new(self.edge.next_index, self.mesh)

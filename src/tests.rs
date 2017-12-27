@@ -175,6 +175,48 @@ fn can_iterate_over_vertices() {
     assert_eq!(vertices_iterated_over, 3);
 }
 
+#[test]
+fn can_iterate_over_edges() {
+    let _ = env_logger::init();
+    let mut mesh = Mesh::new();
+
+    mesh.add(Edge {
+        twin_index: EdgeIndex::new(1),
+        next_index: EdgeIndex::new(2),
+        prev_index: EdgeIndex::new(3),
+        face_index: FaceIndex::new(1),
+        vertex_index: VertexIndex::new(1),
+        ..Edge::default()
+    });
+
+    mesh.add(Edge {
+        twin_index: EdgeIndex::new(1),
+        next_index: EdgeIndex::new(3),
+        prev_index: EdgeIndex::new(1),
+        face_index: FaceIndex::new(1),
+        vertex_index: VertexIndex::new(2),
+        ..Edge::default()
+    });
+
+    mesh.add(Edge {
+        twin_index: EdgeIndex::new(1),
+        next_index: EdgeIndex::new(1),
+        prev_index: EdgeIndex::new(2),
+        face_index: FaceIndex::new(1),
+        vertex_index: VertexIndex::new(3),
+        ..Edge::default()
+    });
+
+    let mut edges_iterated_over = 0;
+
+    for edge in mesh.edges() {
+        assert!(edge.is_valid());
+        edges_iterated_over += 1;
+    }
+
+    assert_eq!(edges_iterated_over, 3);
+}
+
 //#[test]
 //fn can_iterate_over_edges_of_face() {
 //    let _ = env_logger::init();
