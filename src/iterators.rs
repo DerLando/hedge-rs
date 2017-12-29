@@ -41,7 +41,7 @@ impl<'mesh, E> ElementEnumerator<'mesh, E>
 type VertexEnumerator<'mesh> = ElementEnumerator<'mesh, Vertex>;
 type FaceEnumerator<'mesh> = ElementEnumerator<'mesh, Face>;
 type EdgeEnumerator<'mesh> = ElementEnumerator<'mesh, Edge>;
-//type PointEnumerator<'mesh> = ElementEnumerator<'mesh, Point>;
+type PointEnumerator<'mesh> = ElementEnumerator<'mesh, Point>;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -122,6 +122,34 @@ impl<'mesh> Iterator for EdgeFnIterator<'mesh> {
         if let Some((index, edge)) = self.enumerator.next_element() {
             debug!("Found edge {:?} - {:?}", index, edge);
             return Some(EdgeFn::from_index_and_item(index, edge, self.mesh));
+        }
+        return None;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+pub struct PointIterator<'mesh> {
+    enumerator: PointEnumerator<'mesh>,
+    mesh: &'mesh Mesh,
+}
+
+impl<'mesh> PointIterator<'mesh> {
+    pub fn new(mesh: &'mesh Mesh) -> PointIterator<'mesh> {
+        PointIterator {
+            enumerator: PointEnumerator::new(mesh.next_tag(), mesh.kernel.point_buffer.enumerate()),
+            mesh,
+        }
+    }
+}
+
+impl<'mesh> Iterator for PointIterator<'mesh> {
+    type Item = &'mesh Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((index, edge)) = self.enumerator.next_element() {
+            debug!("Found edge {:?} - {:?}", index, edge);
+            return Some(self.mesh.point(index));
         }
         return None;
     }
