@@ -58,6 +58,10 @@ impl <T> Index<T> {
             _marker: marker::PhantomData::default(),
         }
     }
+
+    pub fn into_cell(self) -> Cell<Index<T>> {
+        Cell::new(self)
+    }
 }
 
 impl <T> PartialOrd for Index<T> {
@@ -209,7 +213,7 @@ pub trait GetElement<E: MeshElement> {
     fn get(&self, index: &Index<E>) -> &E;
 }
 
-/// Interface for getting a mutable element reference.
-pub trait GetElementMut<E: MeshElement> {
-    fn get_mut(&mut self, index: &Index<E>) -> Option<&mut E>;
-}
+///// Interface for getting a mutable element reference.
+// pub trait GetElementMut<E: MeshElement> {
+//     fn get_mut(&mut self, index: &Index<E>) -> Option<&mut E>;
+// }

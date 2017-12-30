@@ -58,7 +58,7 @@ impl<'mesh> FaceFn<'mesh> {
 
     /// Convert this `FaceFn` to an `EdgeFn`.
     pub fn edge(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.face.edge_index, self.mesh)
+        EdgeFn::new(self.face.edge_index.get(), self.mesh)
     }
 }
 
@@ -94,27 +94,27 @@ impl<'mesh> EdgeFn<'mesh> {
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's next edge
     pub fn next(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.edge.next_index, self.mesh)
+        EdgeFn::new(self.edge.next_index.get(), self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's prev edge
     pub fn prev(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.edge.prev_index, self.mesh)
+        EdgeFn::new(self.edge.prev_index.get(), self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's twin edge
     pub fn twin(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.edge.twin_index, self.mesh)
+        EdgeFn::new(self.edge.twin_index.get(), self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `FaceFn`
     pub fn face(&self) -> FaceFn<'mesh> {
-        FaceFn::new(self.edge.face_index, self.mesh)
+        FaceFn::new(self.edge.face_index.get(), self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `VertexFn`
     pub fn vertex(&self) -> VertexFn<'mesh> {
-        VertexFn::new(self.edge.vertex_index, self.mesh)
+        VertexFn::new(self.edge.vertex_index.get(), self.mesh)
     }
 }
 
@@ -164,11 +164,11 @@ impl<'mesh> VertexFn<'mesh> {
 
     /// Convert this `VertexFn` to an `EdgeFn`
     pub fn edge(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.vertex.edge_index, self.mesh)
+        EdgeFn::new(self.vertex.edge_index.get(), self.mesh)
     }
 
     pub fn point(&self) -> &'mesh Point {
-        self.mesh.get(&self.vertex.point_index)
+        self.mesh.get(&self.vertex.point_index.get())
     }
 }
 

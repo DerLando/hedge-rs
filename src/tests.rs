@@ -181,29 +181,29 @@ fn can_iterate_over_edges() {
     let mut mesh = Mesh::new();
 
     mesh.add(Edge {
-        twin_index: EdgeIndex::new(1),
-        next_index: EdgeIndex::new(2),
-        prev_index: EdgeIndex::new(3),
-        face_index: FaceIndex::new(1),
-        vertex_index: VertexIndex::new(1),
+        twin_index: EdgeIndex::new(1).into_cell(),
+        next_index: EdgeIndex::new(2).into_cell(),
+        prev_index: EdgeIndex::new(3).into_cell(),
+        face_index: FaceIndex::new(1).into_cell(),
+        vertex_index: VertexIndex::new(1).into_cell(),
         ..Edge::default()
     });
 
     mesh.add(Edge {
-        twin_index: EdgeIndex::new(1),
-        next_index: EdgeIndex::new(3),
-        prev_index: EdgeIndex::new(1),
-        face_index: FaceIndex::new(1),
-        vertex_index: VertexIndex::new(2),
+        twin_index: EdgeIndex::new(1).into_cell(),
+        next_index: EdgeIndex::new(3).into_cell(),
+        prev_index: EdgeIndex::new(1).into_cell(),
+        face_index: FaceIndex::new(1).into_cell(),
+        vertex_index: VertexIndex::new(2).into_cell(),
         ..Edge::default()
     });
 
     mesh.add(Edge {
-        twin_index: EdgeIndex::new(1),
-        next_index: EdgeIndex::new(1),
-        prev_index: EdgeIndex::new(2),
-        face_index: FaceIndex::new(1),
-        vertex_index: VertexIndex::new(3),
+        twin_index: EdgeIndex::new(1).into_cell(),
+        next_index: EdgeIndex::new(1).into_cell(),
+        prev_index: EdgeIndex::new(2).into_cell(),
+        face_index: FaceIndex::new(1).into_cell(),
+        vertex_index: VertexIndex::new(3).into_cell(),
         ..Edge::default()
     });
 

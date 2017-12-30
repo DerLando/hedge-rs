@@ -30,6 +30,19 @@ pub struct Kernel {
 }
 
 impl Kernel {
+
+    /// Sorts contents of each buffer moving inactive elements to the back.
+    #[allow(dead_code)]
+    fn defrag(&mut self) {
+        unimplemented!()
+    }
+
+    /// Drops all inactive elements and shrinks buffers.
+    #[allow(dead_code)]
+    fn collect(&mut self) {
+        unimplemented!()
+    }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,10 +62,6 @@ impl fmt::Debug for Mesh {
 }
 
 impl Mesh {
-    /// Creates a new Mesh with an initial component added to each Vec.
-    ///
-    /// The idea behind having a single invalid component at the front of each
-    /// Vec comes from the blog http://ourmachinery.com/post/defaulting-to-zero/
     pub fn new() -> Mesh {
         Mesh {
             kernel: Kernel::default(),
@@ -196,29 +205,29 @@ impl GetElement<Point> for Mesh {
 ////////////////////////////////////////////////////////////////////////////////
 // Get mutable references
 
-impl GetElementMut<Vertex> for Mesh {
-    fn get_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
-        self.kernel.vertex_buffer.get_mut(index)
-    }
-}
+// impl GetElementMut<Vertex> for Mesh {
+//     fn get_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
+//         self.kernel.vertex_buffer.get_mut(index)
+//     }
+// }
 
-impl GetElementMut<Edge> for Mesh {
-    fn get_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
-        self.kernel.edge_buffer.get_mut(index)
-    }
-}
+// impl GetElementMut<Edge> for Mesh {
+//     fn get_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
+//         self.kernel.edge_buffer.get_mut(index)
+//     }
+// }
 
-impl GetElementMut<Face> for Mesh {
-    fn get_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
-        self.kernel.face_buffer.get_mut(index)
-    }
-}
+// impl GetElementMut<Face> for Mesh {
+//     fn get_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
+//         self.kernel.face_buffer.get_mut(index)
+//     }
+// }
 
-impl GetElementMut<Point> for Mesh {
-    fn get_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
-        self.kernel.point_buffer.get_mut(index)
-    }
-}
+// impl GetElementMut<Point> for Mesh {
+//     fn get_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
+//         self.kernel.point_buffer.get_mut(index)
+//     }
+// }
 
 
 #[cfg(test)]
