@@ -164,11 +164,14 @@ fn can_iterate_over_vertices() {
     mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
     mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
     mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    let v = mesh.add(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
+    mesh.remove(v);
 
     let mut vertices_iterated_over = 0;
 
     for vert in mesh.vertices() {
         assert!(vert.is_valid());
+        assert!(vert.element.edge_index.get().offset != 4);
         vertices_iterated_over += 1;
     }
 
