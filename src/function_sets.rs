@@ -14,7 +14,7 @@ pub trait ElementFn<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
     mesh: &'mesh Mesh,
-    face: &'mesh Face,
+    pub element: &'mesh Face,
     pub index: FaceIndex
 }
 
@@ -23,14 +23,14 @@ impl<'mesh> FaceFn<'mesh> {
     pub fn new(index: FaceIndex, mesh: &'mesh Mesh) -> FaceFn {
         FaceFn {
             mesh,
-            face: &mesh.get(&index),
+            element: &mesh.get(&index),
             index
         }
     }
 
-    pub fn from_index_and_item(index: FaceIndex, face: &'mesh Face, mesh: &'mesh Mesh) -> FaceFn<'mesh> {
+    pub fn from_index_and_item(index: FaceIndex, element: &'mesh Face, mesh: &'mesh Mesh) -> FaceFn<'mesh> {
         FaceFn {
-            mesh, face, index
+            mesh, element, index
         }
     }
 
@@ -58,13 +58,17 @@ impl<'mesh> FaceFn<'mesh> {
 
     /// Convert this `FaceFn` to an `EdgeFn`.
     pub fn edge(&self) -> EdgeFn<'mesh> {
-        EdgeFn::new(self.face.edge_index.get(), self.mesh)
+        EdgeFn::new(self.element.edge_index.get(), self.mesh)
+    }
+
+    pub fn edges(&self) -> FaceEdges {
+        FaceEdges::new(self.mesh.next_tag(), self.edge())
     }
 }
 
 impl<'mesh> IsValid for FaceFn<'mesh> {
     fn is_valid(&self) -> bool {
-        self.face.is_valid()
+        self.element.is_valid()
     }
 }
 

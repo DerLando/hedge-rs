@@ -154,3 +154,19 @@ impl<'mesh> Iterator for PointIterator<'mesh> {
         return None;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+pub struct FaceEdges<'mesh> {
+    tag: Tag,
+    edge: EdgeFn<'mesh>,
+}
+
+impl<'mesh> FaceEdges<'mesh> {
+    pub fn new(tag: Tag, edge: EdgeFn<'mesh>) -> FaceEdges<'mesh> {
+        FaceEdges {
+            tag,
+            edge,
+        }
+    }
+}
