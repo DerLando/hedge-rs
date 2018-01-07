@@ -100,6 +100,10 @@ impl<'mesh> EdgeFn<'mesh> {
         }
     }
 
+    pub fn is_boundary(&self) -> bool {
+        !self.face().is_valid() || !self.twin().face().is_valid()
+    }
+
     /// Convert this `EdgeFn` to an `EdgeFn` of it's next edge
     pub fn next(&self) -> EdgeFn<'mesh> {
         EdgeFn::new(self.element.next_index.get(), self.mesh)

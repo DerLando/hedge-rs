@@ -207,3 +207,65 @@ impl<'mesh> Iterator for FaceVertices<'mesh> {
         self.edges.next().map(|e| e.vertex())
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+pub enum CirculatorDirection {
+    Forward,
+    Backward,
+}
+
+pub struct VertexCirculator<'mesh> {
+    tag: Tag,
+    direction: CirculatorDirection,
+    vertex: VertexFn<'mesh>,
+    current_edge: EdgeFn<'mesh>,
+}
+
+impl<'mesh> VertexCirculator<'mesh> {
+    pub fn new(tag: Tag, vertex: VertexFn<'mesh>) -> VertexCirculator<'mesh> {
+        let direction = CirculatorDirection::Forward;
+        let current_edge = vertex.edge();
+        VertexCirculator {
+            tag,
+            direction,
+            vertex,
+            current_edge,
+        }
+    }
+}
+
+impl<'mesh> Iterator for VertexCirculator<'mesh> {
+    type Item = EdgeFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use CirculatorDirection::*;
+
+        if self.current_edge.element.props().tag.get() == self.tag {
+            return None;
+        } else {
+            self.current_edge.element.props().tag.set(self.tag);
+            let result = Some(self.current_edge);
+
+            match self.direction {
+                Forward => {
+                    if self.current_edge.is_boundary() {
+                        self.direction = Backward;
+                        self.current_edge = self.vertex.edge().twin().next();
+                    } else {
+                        self.current_edge = self.current_edge.prev().twin();
+                    }
+                },
+                Backward => {
+                    if self.current_edge.is_boundary() {
+                        self.current_edge = self.vertex.edge(); // should terminate iterator
+                    } else {
+                        self.current_edge = self.current_edge.twin().next();
+                    }
+                }
+            }
+
+            return result;
+        }
+    }
+}
