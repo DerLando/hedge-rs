@@ -170,3 +170,40 @@ impl<'mesh> FaceEdges<'mesh> {
         }
     }
 }
+
+impl<'mesh> Iterator for FaceEdges<'mesh> {
+    type Item = EdgeFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.edge.element.props().tag.get() == self.tag {
+            return None;
+        } else {
+            self.edge.element.props().tag.set(self.tag);
+            let result = Some(self.edge);
+            self.edge = self.edge.next();
+            return result;
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+pub struct FaceVertices<'mesh> {
+    edges: FaceEdges<'mesh>,
+}
+
+impl<'mesh> FaceVertices<'mesh> {
+    pub fn new(edges: FaceEdges<'mesh>) -> FaceVertices<'mesh> {
+        FaceVertices {
+            edges,
+        }
+    }
+}
+
+impl<'mesh> Iterator for FaceVertices<'mesh> {
+    type Item = VertexFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.edges.next().map(|e| e.vertex())
+    }
+}

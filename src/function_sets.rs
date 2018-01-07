@@ -64,6 +64,10 @@ impl<'mesh> FaceFn<'mesh> {
     pub fn edges(&self) -> FaceEdges {
         FaceEdges::new(self.mesh.next_tag(), self.edge())
     }
+
+    pub fn vertices(&self) -> FaceVertices {
+        FaceVertices::new(self.edges())
+    }
 }
 
 impl<'mesh> IsValid for FaceFn<'mesh> {
