@@ -5,11 +5,6 @@ use super::*;
 use cgmath::prelude::*;
 
 
-pub trait ElementFn<'mesh> {
-    //
-}
-
-
 /// Function set for operations related to the Face struct
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {

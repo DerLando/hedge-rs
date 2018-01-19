@@ -202,33 +202,5 @@ impl GetElement<Point> for Mesh {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Get mutable references
-
-// impl GetElementMut<Vertex> for Mesh {
-//     fn get_mut(&mut self, index: &VertexIndex) -> Option<&mut Vertex> {
-//         self.kernel.vertex_buffer.get_mut(index)
-//     }
-// }
-
-// impl GetElementMut<Edge> for Mesh {
-//     fn get_mut(&mut self, index: &EdgeIndex) -> Option<&mut Edge> {
-//         self.kernel.edge_buffer.get_mut(index)
-//     }
-// }
-
-// impl GetElementMut<Face> for Mesh {
-//     fn get_mut(&mut self, index: &FaceIndex) -> Option<&mut Face> {
-//         self.kernel.face_buffer.get_mut(index)
-//     }
-// }
-
-// impl GetElementMut<Point> for Mesh {
-//     fn get_mut(&mut self, index: &PointIndex) -> Option<&mut Point> {
-//         self.kernel.point_buffer.get_mut(index)
-//     }
-// }
-
-
 #[cfg(test)]
 mod tests;
