@@ -211,8 +211,10 @@ impl<'mesh> Iterator for FaceVertices<'mesh> {
 ////////////////////////////////////////////////////////////////////////////////
 
 pub enum CirculatorDirection {
-    Forward,
-    Backward,
+    /// Counter Clock Wise
+    CCW,
+    /// Clock Wise
+    CW,
 }
 
 pub struct VertexCirculator<'mesh> {
@@ -224,7 +226,7 @@ pub struct VertexCirculator<'mesh> {
 
 impl<'mesh> VertexCirculator<'mesh> {
     pub fn new(tag: Tag, vertex: VertexFn<'mesh>) -> VertexCirculator<'mesh> {
-        let direction = CirculatorDirection::Forward;
+        let direction = CirculatorDirection::CCW;
         let current_edge = vertex.edge();
         VertexCirculator {
             tag,
@@ -248,15 +250,15 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
             let result = Some(self.current_edge);
 
             match self.direction {
-                Forward => {
+                CCW => {
                     if self.current_edge.is_boundary() {
-                        self.direction = Backward;
+                        self.direction = CW;
                         self.current_edge = self.vertex.edge().twin().next();
                     } else {
                         self.current_edge = self.current_edge.prev().twin();
                     }
                 },
-                Backward => {
+                CW => {
                     if self.current_edge.is_boundary() {
                         self.current_edge = self.vertex.edge(); // should terminate iterator
                     } else {
