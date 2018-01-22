@@ -171,7 +171,7 @@ fn can_iterate_over_vertices() {
 
     for vert in mesh.vertices() {
         assert!(vert.is_valid());
-        assert!(vert.element.edge_index.get().offset != 4);
+        assert_ne!(vert.element.edge_index.get().offset, 4);
         vertices_iterated_over += 1;
     }
 
@@ -220,40 +220,43 @@ fn can_iterate_over_edges() {
     assert_eq!(edges_iterated_over, 3);
 }
 
-//#[test]
-//fn can_iterate_over_edges_of_face() {
-//    let _ = env_logger::init();
-//    let mut mesh = TestMesh::new();
-//    let v0 = mesh.add(Vertex::default());
-//    let v1 = mesh.add(Vertex::default());
-//    let v2 = mesh.add(Vertex::default());
-//    let _face = mesh.add(triangle::FromVerts(v0, v1, v2));
-//
-//    assert_eq!(mesh.vertex_list.len(), 4);
-//    assert_eq!(mesh.edge_list.len(), 7);
-//    assert_eq!(mesh.face_list.len(), 2);
-//
-//    let mut faces_iterated_over = 0;
-//    let mut edges_iterated_over = 0;
-//
-//    for face_index in mesh.faces() {
-//        let face = &mesh.face(face_index);
-//        assert!(face.is_valid());
-//        faces_iterated_over += 1;
-//
-//        for edge_index in mesh.edges(face) {
-//            let edge = &mesh.edge(edge_index);
-//            assert!(edge.is_valid());
-//            edges_iterated_over += 1;
-//        }
-//    }
-//
-//    assert_eq!(faces_iterated_over, 1);
-//    assert_eq!(edges_iterated_over, 3);
-//}
+#[test]
+fn can_iterate_over_edges_of_face() {
+    let _ = env_logger::init();
+    let mut mesh = Mesh::new();
+    let v0 = mesh.add(Vertex::default());
+    let v1 = mesh.add(Vertex::default());
+    let v2 = mesh.add(Vertex::default());
 
-//#[test]
-//fn can_iterate_over_vertices_of_face() {
+    //let _face = mesh.add(triangle::FromVerts(v0, v1, v2));
+
+    assert_eq!(mesh.vertex_count(), 3);
+    assert_eq!(mesh.edge_count(), 6);
+    assert_eq!(mesh.face_count(), 1);
+
+    // let mut faces_iterated_over = 0;
+    // let mut edges_iterated_over = 0;
+
+    // for face_index in mesh.faces() {
+    //     let face = &mesh.face(face_index);
+    //     assert!(face.is_valid());
+    //     faces_iterated_over += 1;
+
+    //     for edge_index in mesh.edges(face) {
+    //         let edge = &mesh.edge(edge_index);
+    //         assert!(edge.is_valid());
+    //         edges_iterated_over += 1;
+    //     }
+    // }
+
+    // assert_eq!(faces_iterated_over, 1);
+    // assert_eq!(edges_iterated_over, 3);
+    unimplemented!();
+}
+
+#[test]
+fn can_iterate_over_vertices_of_face() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
 //    let v0 = mesh.add(Vertex::default());
@@ -280,7 +283,7 @@ fn can_iterate_over_edges() {
 //
 //    assert_eq!(faces_iterated_over, 1);
 //    assert_eq!(vertices_iterated_over, 3);
-//}
+}
 
 #[test]
 fn can_add_triangles_to_mesh() {
@@ -297,58 +300,36 @@ fn can_add_triangles_to_mesh() {
 
     assert_eq!(mesh.vertex_count(), 3);
 
-   // let f1 = mesh.add(triangle::FromVerts(v0, v1, v3));
-   // for eindex in mesh.edges(&mesh.face(f1)) {
-   //     let edge = &mesh.edge(eindex);
-   //     assert!(edge.next_index.is_valid());
-   //     assert!(edge.prev_index.is_valid());
-   // }
-   // assert_eq!(mesh.face_fn(f1).edge().face().index, f1);
+    // let f1 = mesh.add(triangle::FromVerts(v0, v1, v3));
+    // for eindex in mesh.edges(&mesh.face(f1)) {
+    //     let edge = &mesh.edge(eindex);
+    //     assert!(edge.next_index.is_valid());
+    //     assert!(edge.prev_index.is_valid());
+    // }
+    // assert_eq!(mesh.face_fn(f1).edge().face().index, f1);
 
-   // let f1e1 = mesh.face_fn(f1).edge().next().index;
-   // let f2e0 = mesh.edge(f1e1).twin_index;
-   // assert!(f2e0.is_valid());
+    // let f1e1 = mesh.face_fn(f1).edge().next().index;
+    // let f2e0 = mesh.edge(f1e1).twin_index;
+    // assert!(f2e0.is_valid());
 
-   // let f2 = mesh.add(triangle::FromOneEdge(f2e0, v2));
-   // for eindex in mesh.edges(&mesh.face(f1)) {
-   //     let edge = &mesh.edge(eindex);
-   //     assert!(edge.next_index.is_valid());
-   //     assert!(edge.prev_index.is_valid());
-   // }
-   // assert_eq!(mesh.face_fn(f2).edge().face().index, f2);
+    // let f2 = mesh.add(triangle::FromOneEdge(f2e0, v2));
+    // for eindex in mesh.edges(&mesh.face(f1)) {
+    //     let edge = &mesh.edge(eindex);
+    //     assert!(edge.next_index.is_valid());
+    //     assert!(edge.prev_index.is_valid());
+    // }
+    // assert_eq!(mesh.face_fn(f2).edge().face().index, f2);
 
-   // assert!(f1e1.is_valid());
+    // assert!(f1e1.is_valid());
 
-   // assert_eq!(mesh.edge(f2e0).twin_index, f1e1);
-   // assert_eq!(mesh.edge(f1e1).twin_index, f2e0);
+    // assert_eq!(mesh.edge(f2e0).twin_index, f1e1);
+    // assert_eq!(mesh.edge(f1e1).twin_index, f2e0);
 
-   // assert_eq!(mesh.edge(f2e0).vertex_index, mesh.edge_fn(f1e1).next().vertex().index);
-   // assert_eq!(mesh.edge(f1e1).vertex_index, mesh.edge_fn(f2e0).next().vertex().index);
+    // assert_eq!(mesh.edge(f2e0).vertex_index, mesh.edge_fn(f1e1).next().vertex().index);
+    // assert_eq!(mesh.edge(f1e1).vertex_index, mesh.edge_fn(f2e0).next().vertex().index);
+
+    unimplemented!();
 }
-
-//#[test]
-//fn can_walk_and_get_mutable_ref() {
-//    let _ = env_logger::init();
-//    let mut mesh = TestMesh::new();
-//
-//    let v0 = mesh.add(Vertex::default());
-//    let v1 = mesh.add(Vertex::default());
-//    let v2 = mesh.add(Vertex::default());
-//
-//    let f1 = mesh.add(triangle::FromVerts(v0, v1, v2));
-//
-//    {
-//        let vertex = {
-//            let index = mesh.face_fn(f1).edge().vertex().index;
-//            &mut mesh.vertex_mut(index)
-//        };
-//        debug!("{:?}", vertex);
-//        assert_eq!(vertex.edge_index.offset, 6);
-//        vertex.edge_index = EdgeIndex::default();
-//    }
-//
-//    assert!(!mesh.face_fn(f1).edge().vertex().edge().index.is_valid());
-//}
 
 //fn print_mesh(mesh: &Mesh) {
 //    debug!("{:?}", mesh);
@@ -365,8 +346,9 @@ fn can_add_triangles_to_mesh() {
 //    }
 //}
 
-//#[test]
-//fn can_build_a_simple_mesh() {
+#[test]
+fn can_build_a_simple_mesh() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    debug!("===========================");
 //    debug!("=====Creating new mesh=====");
@@ -453,10 +435,11 @@ fn can_add_triangles_to_mesh() {
 //    assert_eq!(mesh.face_fn(f2).edge().prev().vertex().index, v3);
 //    assert_eq!(mesh.face_fn(f3).edge().prev().vertex().index, v3);
 //    assert_eq!(mesh.face_fn(f4).edge().prev().vertex().index, v3);
-//}
+}
 
-//#[test]
-//fn can_iterate_edges_around_vertex() {
+#[test]
+fn can_iterate_edges_around_vertex() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
 //
@@ -485,10 +468,11 @@ fn can_add_triangles_to_mesh() {
 //    }
 //    // FIXME: This is just proving that a vertex connected to boundary edges won't work.
 //    assert_eq!(edges_enumerated, 1);
-//}
+}
 
-//#[test]
-//fn can_remove_faces() {
+#[test]
+fn can_remove_faces() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
 //
@@ -522,10 +506,11 @@ fn can_add_triangles_to_mesh() {
 //
 //    assert!(mesh.is_boundary_edge(f0e1));
 //    assert!(mesh.is_boundary_edge(f1e0));
-//}
+}
 
-//#[test]
-//fn can_remove_vertices() {
+#[test]
+fn can_remove_vertices() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
 //
@@ -541,10 +526,11 @@ fn can_add_triangles_to_mesh() {
 //
 //    assert_eq!(mesh.face_fn(f0).edge().prev().is_valid(), false);
 //    assert_eq!(mesh.face_fn(f0).edge().next().twin().is_valid(), false);
-//}
+}
 
-//#[test]
-//fn can_remove_edge() {
+#[test]
+fn can_remove_edge() {
+    unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
 //
@@ -574,4 +560,4 @@ fn can_add_triangles_to_mesh() {
 //    assert_eq!(mesh.face_fn(f1).edge().index, EdgeIndex::new(4));
 //    assert_eq!(mesh.face_fn(f1).edge().next().index, EdgeIndex::new(7));
 //    assert_eq!(mesh.face_fn(f1).edge().prev().index, EdgeIndex::new(2));
-//}
+}

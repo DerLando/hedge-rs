@@ -119,6 +119,8 @@ impl Mesh {
     pub fn point_count(&self) -> usize {
         self.kernel.point_buffer.len() - 1
     }
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
