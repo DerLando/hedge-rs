@@ -20,33 +20,18 @@ pub mod function_sets;
 pub mod iterators;
 
 
-/// Storage interface for Mesh types
-#[derive(Debug, Default)]
-pub struct Kernel {
-    edge_buffer: ElementBuffer<Edge>,
-    face_buffer: ElementBuffer<Face>,
-    vertex_buffer: ElementBuffer<Vertex>,
-    point_buffer: ElementBuffer<Point>,
+pub trait Operator {}
+pub trait SelectionSet {}
+pub trait Query {}
+
+
+pub trait Apply<T: Operator> {
+    fn apply(&mut self, op: T); // TODO: -> Result<>
 }
 
-impl Kernel {
-
-    /// Sorts contents of each buffer moving inactive elements to the back.
-    #[allow(dead_code)]
-    fn defrag(&mut self) {
-        unimplemented!()
-    }
-
-    /// Drops all inactive elements and shrinks buffers.
-    #[allow(dead_code)]
-    fn collect(&mut self) {
-        unimplemented!()
-    }
-
+pub trait Select<Q: Query, S: SelectionSet> {
+    fn select(&self, query: Q) -> S;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 pub struct Mesh {
     kernel: Kernel,
@@ -55,7 +40,7 @@ pub struct Mesh {
 
 impl fmt::Debug for Mesh {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Half-Edge Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
+        write!(f, "Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
                self.point_count(), self.vertex_count(),
                self.edge_count(), self.face_count())
     }
@@ -178,7 +163,7 @@ impl RemoveElement<Point> for Mesh {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Get immutable references
+// Get references
 
 impl GetElement<Vertex> for Mesh {
     fn get(&self, index: &VertexIndex) -> &Vertex {

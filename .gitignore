@@ -3,3 +3,8 @@ target/
 Cargo.lock
 .idea/
 *.iml
+.#*
+CMakeLists.txt
+.build/
+build/
+cmake-build-*

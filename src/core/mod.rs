@@ -213,7 +213,29 @@ pub trait GetElement<E: MeshElement> {
     fn get(&self, index: &Index<E>) -> &E;
 }
 
-///// Interface for getting a mutable element reference.
-// pub trait GetElementMut<E: MeshElement> {
-//     fn get_mut(&mut self, index: &Index<E>) -> Option<&mut E>;
-// }
+////////////////////////////////////////////////////////////////////////////////
+
+/// Storage interface for Mesh types
+#[derive(Debug, Default)]
+pub struct Kernel {
+    pub edge_buffer: ElementBuffer<Edge>,
+    pub face_buffer: ElementBuffer<Face>,
+    pub vertex_buffer: ElementBuffer<Vertex>,
+    pub point_buffer: ElementBuffer<Point>,
+}
+
+impl Kernel {
+
+    /// Sorts contents of each buffer moving inactive elements to the back.
+    #[allow(dead_code)]
+    pub fn defrag(&mut self) {
+        unimplemented!()
+    }
+
+    /// Drops all inactive elements and shrinks buffers.
+    #[allow(dead_code)]
+    pub fn collect(&mut self) {
+        unimplemented!()
+    }
+
+}
