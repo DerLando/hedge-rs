@@ -1,10 +1,13 @@
-
 use std::cell::Cell;
-use super::{Index, IsValid, ElementIndex, ElementProperties, MeshElement, ElementStatus,
-            VertexIndex, FaceIndex};
+use super::{ElementIndex, ElementProperties, ElementStatus, FaceIndex, Index, IsValid,
+            MeshElement, VertexIndex};
 
 /// Handle to Edge data in a Mesh
 pub type EdgeIndex = Index<Edge>;
+
+/// Represents an adjacent half-edge pair.
+pub struct EdgePair(pub EdgeIndex, pub EdgeIndex);
+
 impl ElementIndex for EdgeIndex {}
 
 /// The principle component in a half-edge mesh.
@@ -37,10 +40,8 @@ impl IsValid for Edge {
     /// An Edge is valid when it has a valid twin index, a valid vertex index
     /// and `is_connected`
     fn is_valid(&self) -> bool {
-        self._props.status.get() == ElementStatus::ACTIVE &&
-            self.vertex_index.get().is_valid() &&
-            self.twin_index.get().is_valid() &&
-            self.is_connected()
+        self._props.status.get() == ElementStatus::ACTIVE && self.vertex_index.get().is_valid()
+            && self.twin_index.get().is_valid() && self.is_connected()
     }
 }
 

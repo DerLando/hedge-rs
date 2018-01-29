@@ -1,12 +1,13 @@
-
 //!
 //! An index based half-edge mesh implementation.
 //!
 
+extern crate cgmath;
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
 #[macro_use]
 extern crate log;
-
-extern crate cgmath;
 
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -14,24 +15,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub use core::*;
 pub use function_sets::*;
 pub use iterators::*;
+pub use operator::*;
+pub use query::*;
 
 pub mod core;
 pub mod function_sets;
 pub mod iterators;
-
-
-pub trait Operator {}
-pub trait SelectionSet {}
-pub trait Query {}
-
-
-pub trait Apply<T: Operator> {
-    fn apply(&mut self, op: T); // TODO: -> Result<>
-}
-
-pub trait Select<Q: Query, S: SelectionSet> {
-    fn select(&self, query: Q) -> S;
-}
+pub mod operator;
+pub mod query;
 
 pub struct Mesh {
     kernel: Kernel,
@@ -40,9 +31,14 @@ pub struct Mesh {
 
 impl fmt::Debug for Mesh {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
-               self.point_count(), self.vertex_count(),
-               self.edge_count(), self.face_count())
+        write!(
+            f,
+            "Mesh {{ {} points, {} vertices, {} edges, {} faces }}",
+            self.point_count(),
+            self.vertex_count(),
+            self.edge_count(),
+            self.face_count()
+        )
     }
 }
 
@@ -64,7 +60,7 @@ impl Mesh {
     }
 
     pub fn face_count(&self) -> usize {
-        self.kernel.face_buffer.len() - 1
+        self.kernel.face_count() - 1
     }
 
     pub fn faces<'mesh>(&'mesh self) -> FaceFnIterator<'mesh> {
@@ -77,7 +73,7 @@ impl Mesh {
     }
 
     pub fn edge_count(&self) -> usize {
-        self.kernel.edge_buffer.len() - 1
+        self.kernel.edge_count() - 1
     }
 
     pub fn edges<'mesh>(&'mesh self) -> EdgeFnIterator<'mesh> {
@@ -90,7 +86,7 @@ impl Mesh {
     }
 
     pub fn vertex_count(&self) -> usize {
-        self.kernel.vertex_buffer.len() - 1
+        self.kernel.vertex_count() - 1
     }
 
     pub fn vertices<'mesh>(&'mesh self) -> VertexFnIterator<'mesh> {
@@ -98,94 +94,32 @@ impl Mesh {
     }
 
     pub fn point(&self, index: PointIndex) -> &Point {
-        self.kernel.point_buffer.get(&index)
+        self.kernel.get(&index)
     }
 
     pub fn point_count(&self) -> usize {
-        self.kernel.point_buffer.len() - 1
+        self.kernel.point_count() - 1
     }
 
-
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Adding elements
-
-impl AddElement<Vertex> for Mesh {
-    fn add(&mut self, vertex: Vertex) -> VertexIndex {
-        self.kernel.vertex_buffer.add(vertex)
+    pub fn apply<M, Args>(&mut self, args: Args) -> ModifierResult
+    where
+        M: Modifier<Args>,
+    {
+        M::cook(self, args)
     }
-}
 
-impl AddElement<Edge> for Mesh {
-    fn add(&mut self, edge: Edge) -> EdgeIndex {
-        self.kernel.edge_buffer.add(edge)
+    pub fn select<Q, Args>(&self, args: Args) -> SelectionSet
+    where
+        Q: Query<Args>,
+    {
+        Q::exec(self, args)
     }
-}
 
-impl AddElement<Face> for Mesh {
-    fn add(&mut self, face: Face) -> FaceIndex {
-        self.kernel.face_buffer.add(face)
-    }
-}
-
-impl AddElement<Point> for Mesh {
-    fn add(&mut self, point: Point) -> PointIndex {
-        self.kernel.point_buffer.add(point)
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Removing elements
-
-impl RemoveElement<Vertex> for Mesh {
-    fn remove(&mut self, index: VertexIndex) {
-        self.kernel.vertex_buffer.remove(index);
-    }
-}
-
-impl RemoveElement<Edge> for Mesh {
-    fn remove(&mut self, index: EdgeIndex) {
-        self.kernel.edge_buffer.remove(index);
-    }
-}
-
-impl RemoveElement<Face> for Mesh {
-    fn remove(&mut self, index: FaceIndex) {
-        self.kernel.face_buffer.remove(index);
-    }
-}
-
-impl RemoveElement<Point> for Mesh {
-    fn remove(&mut self, index: PointIndex) {
-        self.kernel.point_buffer.remove(index);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Get references
-
-impl GetElement<Vertex> for Mesh {
-    fn get(&self, index: &VertexIndex) -> &Vertex {
-        self.kernel.vertex_buffer.get(index)
-    }
-}
-
-impl GetElement<Edge> for Mesh {
-    fn get(&self, index: &EdgeIndex) -> &Edge {
-        self.kernel.edge_buffer.get(index)
-    }
-}
-
-impl GetElement<Face> for Mesh {
-    fn get(&self, index: &FaceIndex) -> &Face {
-        self.kernel.face_buffer.get(index)
-    }
-}
-
-impl GetElement<Point> for Mesh {
-    fn get(&self, index: &PointIndex) -> &Point {
-        self.kernel.point_buffer.get(index)
+    pub fn generate<G, Args>(args: Args) -> GeneratorResult
+    where
+        G: Generator<Args>,
+    {
+        G::cook(args)
     }
 }
 

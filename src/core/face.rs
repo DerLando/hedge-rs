@@ -1,7 +1,5 @@
-
 use std::cell::Cell;
-use super::{Index, IsValid, ElementIndex, ElementProperties, MeshElement, ElementStatus,
-            EdgeIndex};
+use super::{EdgeIndex, ElementIndex, ElementProperties, ElementStatus, Index, IsValid, MeshElement};
 
 
 /// Handle to Face data in a Mesh

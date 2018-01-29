@@ -71,7 +71,7 @@ fn default_point_is_valid_after_added_to_mesh() {
     let pindex = {
         let point = Point::default();
         assert_eq!(point.is_valid(), false);
-        mesh.add(point)
+        mesh.kernel.add(point)
     };
 
     assert_eq!(mesh.point(pindex).is_valid(), true);
@@ -83,56 +83,56 @@ fn initial_mesh_has_default_elements() {
     let mesh = Mesh::new();
 
     assert_eq!(mesh.edge_count(), 0);
-    assert_eq!(mesh.kernel.edge_buffer.buffer[0].is_valid(), false);
-    assert_eq!(mesh.kernel.edge_buffer.len(), 1);
+    assert_eq!(mesh.kernel.get(&EdgeIndex::new(0)).is_valid(), false);
+    assert_eq!(mesh.kernel.edge_count(), 1);
 
     assert_eq!(mesh.face_count(), 0);
-    assert_eq!(mesh.kernel.face_buffer.buffer[0].is_valid(), false);
-    assert_eq!(mesh.kernel.face_buffer.len(), 1);
+    assert_eq!(mesh.kernel.get(&FaceIndex::new(0)).is_valid(), false);
+    assert_eq!(mesh.kernel.face_count(), 1);
 
     assert_eq!(mesh.vertex_count(), 0);
-    assert_eq!(mesh.kernel.vertex_buffer.buffer[0].is_valid(), false);
-    assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
+    assert_eq!(mesh.kernel.get(&VertexIndex::new(0)).is_valid(), false);
+    assert_eq!(mesh.kernel.vertex_count(), 1);
 
     assert_eq!(mesh.point_count(), 0);
-    assert_eq!(mesh.kernel.point_buffer.buffer[0].is_valid(), false);
-    assert_eq!(mesh.kernel.point_buffer.len(), 1);
+    assert_eq!(mesh.kernel.get(&PointIndex::new(0)).is_valid(), false);
+    assert_eq!(mesh.kernel.point_count(), 1);
 }
 
 #[test]
 fn can_add_vertices() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
-    let _ = mesh.add(Vertex::default());
+    let _ = mesh.kernel.add(Vertex::default());
     assert_eq!(mesh.vertex_count(), 1);
-    assert_eq!(mesh.kernel.vertex_buffer.len(), 2);
+    assert_eq!(mesh.kernel.vertex_count(), 2);
 }
 
 #[test]
 fn can_add_edges() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
-    let _ = mesh.add(Edge::default());
+    let _ = mesh.kernel.add(Edge::default());
     assert_eq!(mesh.edge_count(), 1);
-    assert_eq!(mesh.kernel.edge_buffer.len(), 2);
+    assert_eq!(mesh.kernel.edge_count(), 2);
 }
 
 #[test]
 fn can_add_faces() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
-    let _ = mesh.add(Face::default());
+    let _ = mesh.kernel.add(Face::default());
     assert_eq!(mesh.face_count(), 1);
-    assert_eq!(mesh.kernel.face_buffer.len(), 2);
+    assert_eq!(mesh.kernel.face_count(), 2);
 }
 
 #[test]
 fn can_add_points() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
-    let _ = mesh.add(Point::default());
+    let _ = mesh.kernel.add(Point::default());
     assert_eq!(mesh.point_count(), 1);
-    assert_eq!(mesh.kernel.point_buffer.len(), 2);
+    assert_eq!(mesh.kernel.point_count(), 2);
 }
 
 #[test]
@@ -140,9 +140,9 @@ fn can_iterate_over_faces() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
 
-    mesh.add(Face::new(EdgeIndex::new(1)));
-    mesh.add(Face::new(EdgeIndex::new(4)));
-    mesh.add(Face::new(EdgeIndex::new(7)));
+    mesh.kernel.add(Face::new(EdgeIndex::new(1)));
+    mesh.kernel.add(Face::new(EdgeIndex::new(4)));
+    mesh.kernel.add(Face::new(EdgeIndex::new(7)));
 
     assert_eq!(mesh.face_count(), 3);
 
@@ -161,11 +161,11 @@ fn can_iterate_over_vertices() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
 
-    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-    mesh.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-    let v = mesh.add(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
-    mesh.remove(v);
+    mesh.kernel.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    mesh.kernel.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    mesh.kernel.add(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+    let v = mesh.kernel.add(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
+    mesh.kernel.remove(v);
 
     let mut vertices_iterated_over = 0;
 
@@ -183,7 +183,7 @@ fn can_iterate_over_edges() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
 
-    mesh.add(Edge {
+    mesh.kernel.add(Edge {
         twin_index: EdgeIndex::new(1).into_cell(),
         next_index: EdgeIndex::new(2).into_cell(),
         prev_index: EdgeIndex::new(3).into_cell(),
@@ -192,7 +192,7 @@ fn can_iterate_over_edges() {
         ..Edge::default()
     });
 
-    mesh.add(Edge {
+    mesh.kernel.add(Edge {
         twin_index: EdgeIndex::new(1).into_cell(),
         next_index: EdgeIndex::new(3).into_cell(),
         prev_index: EdgeIndex::new(1).into_cell(),
@@ -201,7 +201,7 @@ fn can_iterate_over_edges() {
         ..Edge::default()
     });
 
-    mesh.add(Edge {
+    mesh.kernel.add(Edge {
         twin_index: EdgeIndex::new(1).into_cell(),
         next_index: EdgeIndex::new(1).into_cell(),
         prev_index: EdgeIndex::new(2).into_cell(),
@@ -224,9 +224,9 @@ fn can_iterate_over_edges() {
 fn can_iterate_over_edges_of_face() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
-    let v0 = mesh.add(Vertex::default());
-    let v1 = mesh.add(Vertex::default());
-    let v2 = mesh.add(Vertex::default());
+    let v0 = mesh.kernel.add(Vertex::default());
+    let v1 = mesh.kernel.add(Vertex::default());
+    let v2 = mesh.kernel.add(Vertex::default());
 
     //let _face = mesh.add(triangle::FromVerts(v0, v1, v2));
 
@@ -259,9 +259,9 @@ fn can_iterate_over_vertices_of_face() {
     unimplemented!();
 //    let _ = env_logger::init();
 //    let mut mesh = TestMesh::new();
-//    let v0 = mesh.add(Vertex::default());
-//    let v1 = mesh.add(Vertex::default());
-//    let v2 = mesh.add(Vertex::default());
+//    let v0 = mesh.kernel.add(Vertex::default());
+//    let v1 = mesh.kernel.add(Vertex::default());
+//    let v2 = mesh.kernel.add(Vertex::default());
 //    let _face = mesh.add(triangle::FromVerts(v0, v1, v2));
 //
 //    let mut faces_iterated_over = 0;
@@ -290,13 +290,13 @@ fn can_add_triangles_to_mesh() {
     let _ = env_logger::init();
     let mut mesh = Mesh::new();
 
-    let p0 = mesh.add(Point::default());
-    let p1 = mesh.add(Point::default());
-    let p2 = mesh.add(Point::default());
+    let p0 = mesh.kernel.add(Point::default());
+    let p1 = mesh.kernel.add(Point::default());
+    let p2 = mesh.kernel.add(Point::default());
 
-    let _v0 = mesh.add(Vertex::from_point(p0));
-    let _v1 = mesh.add(Vertex::from_point(p1));
-    let _v2 = mesh.add(Vertex::from_point(p2));
+    let _v0 = mesh.kernel.add(Vertex::from_point(p0));
+    let _v1 = mesh.kernel.add(Vertex::from_point(p1));
+    let _v2 = mesh.kernel.add(Vertex::from_point(p2));
 
     assert_eq!(mesh.vertex_count(), 3);
 
@@ -357,10 +357,10 @@ fn can_build_a_simple_mesh() {
 //
 //    debug!("===========================");
 //    debug!("====Creating 4 vertices====");
-//    let v0 = mesh.add(Vertex::default());
-//    let v1 = mesh.add(Vertex::default());
-//    let v2 = mesh.add(Vertex::default());
-//    let v3 = mesh.add(Vertex::default());
+//    let v0 = mesh.kernel.add(Vertex::default());
+//    let v1 = mesh.kernel.add(Vertex::default());
+//    let v2 = mesh.kernel.add(Vertex::default());
+//    let v3 = mesh.ketnel.add(Vertex::default());
 //    debug!("");
 //
 //    debug!("===========================");
@@ -491,7 +491,7 @@ fn can_remove_faces() {
 //    assert_eq!(mesh.is_boundary_edge(f0e1), false);
 //    assert_eq!(mesh.is_boundary_edge(f1e0), false);
 //
-//    mesh.remove(f1);
+//    mesh.kernel.remove(f1);
 //
 //    assert!(mesh.is_boundary_edge(f0e1));
 //    assert!(mesh.is_boundary_edge(f1e0));
@@ -502,7 +502,7 @@ fn can_remove_faces() {
 //    assert_eq!(mesh.is_boundary_edge(f0e1), false);
 //    assert_eq!(mesh.is_boundary_edge(f1e0), false);
 //
-//    mesh.remove(f0);
+//    mesh.kernel.remove(f0);
 //
 //    assert!(mesh.is_boundary_edge(f0e1));
 //    assert!(mesh.is_boundary_edge(f1e0));
@@ -520,7 +520,7 @@ fn can_remove_vertices() {
 //
 //    let f0 = mesh.add(triangle::FromVerts(v0, v1, v2));
 //
-//    mesh.remove(v2);
+//    mesh.kernel.remove(v2);
 //
 //    assert_eq!(mesh.vertex(v2).is_valid(), false);
 //
@@ -552,7 +552,7 @@ fn can_remove_edge() {
 //    };
 //
 //    assert_eq!(mesh.num_edges(), 10);
-//    mesh.remove(f0e0);
+//    mesh.kernel.remove(f0e0);
 //    assert_eq!(mesh.num_edges(), 8);
 //
 //    assert_eq!(mesh.face(f0).edge_index, f0e1);

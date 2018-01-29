@@ -2,47 +2,6 @@
 
 use super::*;
 
-use std::slice::Iter;
-use std::iter::Enumerate;
-
-
-pub struct ElementEnumerator<'mesh, E: 'mesh + MeshElement> {
-    tag: Tag,
-    iter: Enumerate<Iter<'mesh, E>>,
-}
-
-impl<'mesh, E> ElementEnumerator<'mesh, E>
-    where E: 'mesh + MeshElement
-{
-    pub fn new(tag: Tag, iter: Enumerate<Iter<'mesh, E>>) -> ElementEnumerator<'mesh, E> {
-        debug!("New element enumerator");
-        ElementEnumerator {
-            tag,
-            iter,
-        }
-    }
-
-    fn next_element(&mut self) -> Option<(Index<E>, &'mesh E)> {
-        for (offset, element) in self.iter.by_ref() {
-            let props = element.props();
-            let is_next = props.status.get() == ElementStatus::ACTIVE &&
-                props.tag.get() != self.tag;
-            if is_next {
-                props.tag.set(self.tag);
-                let index = Index::with_generation(offset, props.generation.get());
-                return Some((index, element));
-            }
-        }
-        debug!("Element enumeration completed.");
-        return None;
-    }
-}
-
-type VertexEnumerator<'mesh> = ElementEnumerator<'mesh, Vertex>;
-type FaceEnumerator<'mesh> = ElementEnumerator<'mesh, Face>;
-type EdgeEnumerator<'mesh> = ElementEnumerator<'mesh, Edge>;
-type PointEnumerator<'mesh> = ElementEnumerator<'mesh, Point>;
-
 ////////////////////////////////////////////////////////////////////////////////
 
 pub struct VertexFnIterator<'mesh> {
@@ -53,7 +12,7 @@ pub struct VertexFnIterator<'mesh> {
 impl<'mesh> VertexFnIterator<'mesh> {
     pub fn new(mesh: &'mesh Mesh) -> VertexFnIterator<'mesh> {
         VertexFnIterator {
-            enumerator: VertexEnumerator::new(mesh.next_tag(), mesh.kernel.vertex_buffer.enumerate()),
+            enumerator: mesh.kernel.enumerate_vertices(mesh.next_tag()),
             mesh,
         }
     }
@@ -81,7 +40,7 @@ pub struct FaceFnIterator<'mesh> {
 impl<'mesh> FaceFnIterator<'mesh> {
     pub fn new(mesh: &'mesh Mesh) -> FaceFnIterator<'mesh> {
         FaceFnIterator {
-            enumerator: FaceEnumerator::new(mesh.next_tag(), mesh.kernel.face_buffer.enumerate()),
+            enumerator: mesh.kernel.enumerate_faces(mesh.next_tag()),
             mesh,
         }
     }
@@ -109,7 +68,7 @@ pub struct EdgeFnIterator<'mesh> {
 impl<'mesh> EdgeFnIterator<'mesh> {
     pub fn new(mesh: &'mesh Mesh) -> EdgeFnIterator<'mesh> {
         EdgeFnIterator {
-            enumerator: EdgeEnumerator::new(mesh.next_tag(), mesh.kernel.edge_buffer.enumerate()),
+            enumerator: mesh.kernel.enumerate_edges(mesh.next_tag()),
             mesh,
         }
     }
@@ -137,7 +96,7 @@ pub struct PointIterator<'mesh> {
 impl<'mesh> PointIterator<'mesh> {
     pub fn new(mesh: &'mesh Mesh) -> PointIterator<'mesh> {
         PointIterator {
-            enumerator: PointEnumerator::new(mesh.next_tag(), mesh.kernel.point_buffer.enumerate()),
+            enumerator: mesh.kernel.enumerate_points(mesh.next_tag()),
             mesh,
         }
     }
@@ -164,10 +123,7 @@ pub struct FaceEdges<'mesh> {
 
 impl<'mesh> FaceEdges<'mesh> {
     pub fn new(tag: Tag, edge: EdgeFn<'mesh>) -> FaceEdges<'mesh> {
-        FaceEdges {
-            tag,
-            edge,
-        }
+        FaceEdges { tag, edge }
     }
 }
 
@@ -194,9 +150,7 @@ pub struct FaceVertices<'mesh> {
 
 impl<'mesh> FaceVertices<'mesh> {
     pub fn new(edges: FaceEdges<'mesh>) -> FaceVertices<'mesh> {
-        FaceVertices {
-            edges,
-        }
+        FaceVertices { edges }
     }
 }
 
@@ -250,13 +204,11 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
             let result = Some(self.current_edge);
 
             match self.direction {
-                CCW => {
-                    if self.current_edge.is_boundary() {
-                        self.direction = CW;
-                        self.current_edge = self.vertex.edge().twin().next();
-                    } else {
-                        self.current_edge = self.current_edge.prev().twin();
-                    }
+                CCW => if self.current_edge.is_boundary() {
+                    self.direction = CW;
+                    self.current_edge = self.vertex.edge().twin().next();
+                } else {
+                    self.current_edge = self.current_edge.prev().twin();
                 },
                 CW => {
                     if self.current_edge.is_boundary() {

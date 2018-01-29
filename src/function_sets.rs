@@ -10,22 +10,27 @@ use cgmath::prelude::*;
 pub struct FaceFn<'mesh> {
     mesh: &'mesh Mesh,
     pub element: &'mesh Face,
-    pub index: FaceIndex
+    pub index: FaceIndex,
 }
 
 impl<'mesh> FaceFn<'mesh> {
-
     pub fn new(index: FaceIndex, mesh: &'mesh Mesh) -> FaceFn {
         FaceFn {
             mesh,
-            element: &mesh.get(&index),
-            index
+            element: &mesh.kernel.get(&index),
+            index,
         }
     }
 
-    pub fn from_index_and_item(index: FaceIndex, element: &'mesh Face, mesh: &'mesh Mesh) -> FaceFn<'mesh> {
+    pub fn from_index_and_item(
+        index: FaceIndex,
+        element: &'mesh Face,
+        mesh: &'mesh Mesh,
+    ) -> FaceFn<'mesh> {
         FaceFn {
-            mesh, element, index
+            mesh,
+            element,
+            index,
         }
     }
 
@@ -77,21 +82,27 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
 pub struct EdgeFn<'mesh> {
     mesh: &'mesh Mesh,
     pub element: &'mesh Edge,
-    pub index: EdgeIndex
+    pub index: EdgeIndex,
 }
 
 impl<'mesh> EdgeFn<'mesh> {
     pub fn new(index: EdgeIndex, mesh: &'mesh Mesh) -> EdgeFn {
         EdgeFn {
             mesh,
-            element: &mesh.get(&index),
-            index
+            element: &mesh.kernel.get(&index),
+            index,
         }
     }
 
-    pub fn from_index_and_item(index: EdgeIndex, element: &'mesh Edge, mesh: &'mesh Mesh) -> EdgeFn<'mesh> {
+    pub fn from_index_and_item(
+        index: EdgeIndex,
+        element: &'mesh Edge,
+        mesh: &'mesh Mesh,
+    ) -> EdgeFn<'mesh> {
         EdgeFn {
-            mesh, element, index
+            mesh,
+            element,
+            index,
         }
     }
 
@@ -137,22 +148,27 @@ impl<'mesh> IsValid for EdgeFn<'mesh> {
 pub struct VertexFn<'mesh> {
     mesh: &'mesh Mesh,
     pub element: &'mesh Vertex,
-    pub index: VertexIndex
+    pub index: VertexIndex,
 }
 
 impl<'mesh> VertexFn<'mesh> {
-
     pub fn new(index: VertexIndex, mesh: &'mesh Mesh) -> VertexFn {
         VertexFn {
             mesh,
-            element: &mesh.get(&index),
-            index
+            element: &mesh.kernel.get(&index),
+            index,
         }
     }
 
-    pub fn from_index_and_item(index: VertexIndex, element: &'mesh Vertex, mesh: &'mesh Mesh) -> VertexFn<'mesh> {
+    pub fn from_index_and_item(
+        index: VertexIndex,
+        element: &'mesh Vertex,
+        mesh: &'mesh Mesh,
+    ) -> VertexFn<'mesh> {
         VertexFn {
-            mesh, element, index
+            mesh,
+            element,
+            index,
         }
     }
 
@@ -175,7 +191,7 @@ impl<'mesh> VertexFn<'mesh> {
     }
 
     pub fn point(&self) -> &'mesh Point {
-        self.mesh.get(&self.element.point_index.get())
+        self.mesh.kernel.get(&self.element.point_index.get())
     }
 }
 

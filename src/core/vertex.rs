@@ -1,7 +1,6 @@
-
 use std::cell::Cell;
-use super::{Index, IsValid, ElementIndex, ElementProperties, MeshElement, ElementStatus,
-            EdgeIndex, PointIndex};
+use super::{EdgeIndex, ElementIndex, ElementProperties, ElementStatus, Index, IsValid,
+            MeshElement, PointIndex};
 
 /// Handle to Vertex data in a Mesh
 pub type VertexIndex = Index<Vertex>;

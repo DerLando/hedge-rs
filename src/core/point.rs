@@ -1,7 +1,4 @@
-
-
-use super::{Index, MeshElement, ElementProperties, ElementStatus,
-            ElementIndex, IsValid, Position};
+use super::{ElementIndex, ElementProperties, ElementStatus, Index, IsValid, MeshElement, Position};
 
 /// Handle to Point data in a Mesh
 pub type PointIndex = Index<Point>;
