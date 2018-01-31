@@ -294,9 +294,8 @@ fn can_add_triangles_to_mesh() {
     let p1 = mesh.kernel.add(Point::default());
     let p2 = mesh.kernel.add(Point::default());
 
-    let _v0 = mesh.kernel.add(Vertex::from_point(p0));
-    let _v1 = mesh.kernel.add(Vertex::from_point(p1));
-    let _v2 = mesh.kernel.add(Vertex::from_point(p2));
+    mesh.apply(Append::Triangle(p0, p1, p2))
+        .expect("Failed to append triangle to mesh.");
 
     assert_eq!(mesh.vertex_count(), 3);
 

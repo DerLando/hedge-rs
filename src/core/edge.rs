@@ -5,9 +5,6 @@ use super::{ElementIndex, ElementProperties, ElementStatus, FaceIndex, Index, Is
 /// Handle to Edge data in a Mesh
 pub type EdgeIndex = Index<Edge>;
 
-/// Represents an adjacent half-edge pair.
-pub struct EdgePair(pub EdgeIndex, pub EdgeIndex);
-
 impl ElementIndex for EdgeIndex {}
 
 /// The principle component in a half-edge mesh.

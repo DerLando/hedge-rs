@@ -2,6 +2,7 @@
 //! An index based half-edge mesh implementation.
 //!
 
+extern crate ordermap;
 extern crate cgmath;
 extern crate failure;
 #[macro_use]
@@ -21,6 +22,7 @@ pub use query::*;
 pub mod core;
 pub mod function_sets;
 pub mod iterators;
+pub mod utils;
 pub mod operator;
 pub mod query;
 
@@ -99,27 +101,6 @@ impl Mesh {
 
     pub fn point_count(&self) -> usize {
         self.kernel.point_count() - 1
-    }
-
-    pub fn apply<M, Args>(&mut self, args: Args) -> ModifierResult
-    where
-        M: Modifier<Args>,
-    {
-        M::cook(self, args)
-    }
-
-    pub fn select<Q, Args>(&self, args: Args) -> SelectionSet
-    where
-        Q: Query<Args>,
-    {
-        Q::exec(self, args)
-    }
-
-    pub fn generate<G, Args>(args: Args) -> GeneratorResult
-    where
-        G: Generator<Args>,
-    {
-        G::cook(args)
     }
 }
 

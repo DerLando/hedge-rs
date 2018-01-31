@@ -1,9 +1,11 @@
 //! Operator interface and a set of initial implementations.
 
+use std::collections::VecDeque;
 use failure::Error;
-
+use super::utils;
 use super::Mesh;
 use super::core::*;
+use super::function_sets::*;
 
 #[derive(Debug, Fail)]
 pub enum OperatorError {
@@ -13,50 +15,25 @@ pub enum OperatorError {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-pub type ModifierResult = Result<(), Error>;
-
-pub trait Modifier<Args> {
-    fn cook(mesh: &mut Mesh, args: Args) -> ModifierResult;
+pub struct OperatorContext<Input> {
+    input: VecDeque<Input>,
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-pub type GeneratorResult = Result<Mesh, Error>;
-
-pub trait Generator<Args> {
-    fn cook(args: Args) -> GeneratorResult;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-pub mod utils {
-    use super::*;
-
-    /// Given two vertex indices, create an adjacent edge pair
-    pub fn add_edge_from_verts(mesh: &mut Mesh, v0: VertexIndex, v1: VertexIndex) -> EdgePair {
-        let e0 = mesh.kernel.add(Edge {
-            vertex_index: v0.into_cell(),
-            ..Edge::default()
-        });
-
-        let e1 = mesh.kernel.add(Edge {
-            twin_index: e0.into_cell(),
-            vertex_index: v1.into_cell(),
-            ..Edge::default()
-        });
-
-        mesh.kernel.get(&e0).twin_index.set(e1);
-
-        EdgePair(e0, e1)
+impl<Input> OperatorContext<Input> {
+    pub fn enqueue(&mut self, next_input: Input) {
+        self.input.push_back(next_input);
     }
-
-    /// Given two point indices, create two vertices and an adjacent edge pair
-    pub fn add_edge_from_points(mesh: &mut Mesh, p0: PointIndex, p1: PointIndex) -> EdgePair {
-        let v0 = mesh.kernel.add(Vertex::from_point(p0));
-        let v1 = mesh.kernel.add(Vertex::from_point(p1));
-
-        add_edge_from_verts(mesh, v0, v1)
+    pub fn dequeue(&mut self) -> Option<Input> {
+        self.input.pop_front()
     }
 }
 
+pub trait Operator {
+    type Input;
+    type Output;
+    fn cook(&mut self, mesh: &mut Mesh, context: &mut OperatorContext<Self::Input>) -> Result<Self::Output, Error>;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
+
+pub struct Append {}

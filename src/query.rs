@@ -1,19 +1,18 @@
 //! Query interface and some provided implementations
 
-use std::collections::HashSet;
-
+use ordermap::OrderSet;
 use super::Mesh;
 use super::core::*;
 //use super::iterators::*;
 
-pub enum SelectionSet {
-  Vertices(HashSet<VertexIndex>),
-  Edges(HashSet<EdgeIndex>),
-  Faces(HashSet<FaceIndex>),
-  Points(HashSet<PointIndex>),
+pub enum Selection {
+  Vertices(OrderSet<VertexIndex>),
+  Edges(OrderSet<EdgeIndex>),
+  Faces(OrderSet<FaceIndex>),
+  Points(OrderSet<PointIndex>),
   EdgeLoop(Vec<EdgeIndex>),
 }
 
 pub trait Query<Args> {
-  fn exec(mesh: &Mesh, args: Args) -> SelectionSet;
+  fn exec(mesh: &Mesh, args: Args) -> Selection;
 }
