@@ -11,6 +11,7 @@ pub enum Selection {
   Faces(OrderSet<FaceIndex>),
   Points(OrderSet<PointIndex>),
   EdgeLoop(Vec<EdgeIndex>),
+  Empty,
 }
 
 pub trait Query<Args> {

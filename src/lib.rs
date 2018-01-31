@@ -16,15 +16,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub use core::*;
 pub use function_sets::*;
 pub use iterators::*;
-pub use operator::*;
 pub use query::*;
+pub use operator::*;
 
 pub mod core;
 pub mod function_sets;
 pub mod iterators;
 pub mod utils;
-pub mod operator;
 pub mod query;
+pub mod operator;
 
 pub struct Mesh {
     kernel: Kernel,
