@@ -2,18 +2,44 @@
 
 use ordermap::OrderSet;
 use super::Mesh;
-use super::core::*;
-//use super::iterators::*;
+use super::core::{EdgeIndex, FaceIndex, PointIndex, VertexIndex};
 
+#[derive(Debug, Hash, PartialEq, Clone, Copy)]
 pub enum Selection {
-  Vertices(OrderSet<VertexIndex>),
-  Edges(OrderSet<EdgeIndex>),
-  Faces(OrderSet<FaceIndex>),
-  Points(OrderSet<PointIndex>),
-  EdgeLoop(Vec<EdgeIndex>),
-  Empty,
+  Point(PointIndex),
+  Vertex(VertexIndex),
+  Edge(EdgeIndex),
+  Face(FaceIndex),
 }
 
-pub trait Query<Args> {
-  fn exec(mesh: &Mesh, args: Args) -> Selection;
+impl Eq for Selection {}
+
+impl Into<Selection> for PointIndex {
+  fn into(self) -> Selection {
+    Selection::Point(self)
+  }
+}
+
+impl Into<Selection> for FaceIndex {
+  fn into(self) -> Selection {
+    Selection::Face(self)
+  }
+}
+
+impl Into<Selection> for VertexIndex {
+  fn into(self) -> Selection {
+    Selection::Vertex(self)
+  }
+}
+
+impl Into<Selection> for EdgeIndex {
+  fn into(self) -> Selection {
+    Selection::Edge(self)
+  }
+}
+
+pub type SelectionSet = OrderSet<Selection>;
+
+pub trait Query {
+  fn exec(mesh: &Mesh, selection: &mut SelectionSet);
 }

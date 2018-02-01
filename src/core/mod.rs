@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::cell::Cell;
 use std::slice::Iter;
 use std::iter::Enumerate;
+use std::hash::{Hash, Hasher};
 use cgmath::Vector3;
 
 pub use self::point::*;
@@ -32,7 +33,7 @@ pub trait IsValid {
 }
 
 /// Marker trait for index types.
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Eq)]
 pub struct Index<T> {
     pub offset: Offset,
     pub generation: Generation,
@@ -40,6 +41,13 @@ pub struct Index<T> {
 }
 
 impl<T: Clone> Copy for Index<T> {}
+
+impl<T> Hash for Index<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.offset.hash(state);
+        self.generation.hash(state);
+    }
+}
 
 impl<T> Index<T> {
     pub fn new(offset: Offset) -> Index<T> {
