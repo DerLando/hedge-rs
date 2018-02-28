@@ -4,7 +4,6 @@ use super::*;
 
 use cgmath::prelude::*;
 
-
 /// Function set for operations related to the Face struct
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
@@ -76,7 +75,6 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
     }
 }
 
-
 /// Function set for operations related to the Edge struct
 #[derive(Debug, Copy, Clone)]
 pub struct EdgeFn<'mesh> {
@@ -141,7 +139,6 @@ impl<'mesh> IsValid for EdgeFn<'mesh> {
         self.element.is_valid()
     }
 }
-
 
 /// Function set for operations related to the Vertex struct
 #[derive(Debug, Copy, Clone)]

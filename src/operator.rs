@@ -1,7 +1,7 @@
 //! Operator interface and a set of initial implementations.
 
 use std::collections::VecDeque;
-use std::cell::{RefCell, RefMut, Cell};
+use std::cell::{Cell, RefCell, RefMut};
 use failure::Error;
 use ordermap;
 use cgmath;
@@ -13,8 +13,7 @@ use super::function_sets::*;
 
 #[derive(Debug, Fail)]
 pub enum OperatorError {
-    #[fail(display = "invalid arguments provided to operator.")]
-    InvalidArguments,
+    #[fail(display = "invalid arguments provided to operator.")] InvalidArguments,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -76,11 +75,7 @@ impl OperatorContext {
 pub type OperatorResult = Result<OperatorData, Error>;
 
 pub trait Operator {
-    fn cook(
-        &mut self,
-        mesh: &mut Mesh,
-        context: &mut OperatorContext
-    ) -> OperatorResult;
+    fn cook(&mut self, mesh: &mut Mesh, context: &mut OperatorContext) -> OperatorResult;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,7 +84,7 @@ pub struct PolyAppend {}
 
 impl PolyAppend {
     pub fn new() -> PolyAppend {
-        PolyAppend{}
+        PolyAppend {}
     }
 
     pub fn from_point_slice(mesh: &mut Mesh, points: &[PointIndex]) -> FaceIndex {

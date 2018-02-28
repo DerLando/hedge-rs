@@ -1,7 +1,6 @@
 use std::cell::Cell;
 use super::{EdgeIndex, ElementIndex, ElementProperties, ElementStatus, Index, IsValid, MeshElement};
 
-
 /// Handle to Face data in a Mesh
 pub type FaceIndex = Index<Face>;
 impl ElementIndex for FaceIndex {}

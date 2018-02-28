@@ -2,13 +2,13 @@
 //! An index based half-edge mesh implementation.
 //!
 
-extern crate ordermap;
 extern crate cgmath;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 #[macro_use]
 extern crate log;
+extern crate ordermap;
 
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
