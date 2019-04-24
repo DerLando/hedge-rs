@@ -135,72 +135,72 @@ impl Kernel {
 
 impl GetElement<Point> for Kernel {
     fn get_element(&self, index: &Index<Point>) -> Option<&Point> {
-        unimplemented!()
+        self.point_buffer.get(index)
     }
 }
 
 impl GetElement<Vertex> for Kernel {
     fn get_element(&self, index: &Index<Vertex>) -> Option<&Vertex> {
-        unimplemented!()
+        self.vertex_buffer.get(index)
     }
 }
 
 impl GetElement<Edge> for Kernel {
     fn get_element(&self, index: &Index<Edge>) -> Option<&Edge> {
-        unimplemented!()
+        self.edge_buffer.get(index)
     }
 }
 
 impl GetElement<Face> for Kernel {
     fn get_element(&self, index: &Index<Face>) -> Option<&Face> {
-        unimplemented!()
+        self.face_buffer.get(index)
     }
 }
 
 impl AddElement<Point> for Kernel {
     fn add_element(&mut self, element: Point) -> Index<Point> {
-        unimplemented!()
+        self.point_buffer.add(element)
     }
 }
 
 impl AddElement<Vertex> for Kernel {
     fn add_element(&mut self, element: Vertex) -> Index<Vertex> {
-        unimplemented!()
+        self.vertex_buffer.add(element)
     }
 }
 
 impl AddElement<Edge> for Kernel {
     fn add_element(&mut self, element: Edge) -> Index<Edge> {
-        unimplemented!()
+        self.edge_buffer.add(element)
     }
 }
 
 impl AddElement<Face> for Kernel {
     fn add_element(&mut self, element: Face) -> Index<Face> {
-        unimplemented!()
+        self.face_buffer.add(element)
     }
 }
 
 impl RemoveElement<Point> for Kernel {
     fn remove_element(&mut self, index: Index<Point>) {
-        unimplemented!()
+        self.point_buffer.remove(index)
     }
 }
 
 impl RemoveElement<Vertex> for Kernel {
     fn remove_element(&mut self, index: Index<Vertex>) {
-        unimplemented!()
+        self.vertex_buffer.remove(index)
     }
 }
 
 impl RemoveElement<Edge> for Kernel {
     fn remove_element(&mut self, index: Index<Edge>) {
-        unimplemented!()
+        self.edge_buffer.remove(index)
     }
 }
 
 impl RemoveElement<Face> for Kernel {
     fn remove_element(&mut self, index: Index<Face>) {
-        unimplemented!()
+        self.face_buffer.remove(index)
     }
 }
