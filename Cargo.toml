@@ -1,27 +1,21 @@
 [package]
 name = "hedge"
-version = "0.0.15"
+version = "0.1.0"
 authors = ["Chip Collier <photex@gmail.com>"]
-
 description = "An index based half-edge mesh implementation."
-
-
 keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
 categories = ["data-structures"]
-
 license = "MPL-2.0"
-
 documentation = "https://docs.rs/hedge"
 homepage = "https://github.com/photex/hedge"
 repository = "https://github.com/photex/hedge"
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
 log = "0.3"
-cgmath = "0.15"
-ordermap = "0.3.5"
-failure = "0.1.1"
-failure_derive = "0.1.1"
+indexmap = "1.0"
+failure = "0.1"
 
 [dev-dependencies]
-env_logger = "0.4"
+env_logger = "0.6"
