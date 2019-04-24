@@ -54,7 +54,7 @@ pub trait Taggable {
     fn set_tag(&self, tag: Tag);
 }
 
-pub trait Indexable {
+pub trait Storable {
     fn generation(&self) -> Generation;
     fn set_generation(&self, generation: Generation);
 }
@@ -123,33 +123,34 @@ pub enum ElementStatus {
     INACTIVE,
 }
 
-/// The 3 fields our element buffers needs to do its work
+/// Trait for accessing Mesh element properties.
 #[derive(Debug, Clone)]
-pub struct ElementProperties {
-    pub generation: Generation,
-    pub status: ElementStatus,
-    pub tag: Tag,
+pub struct MeshElement<D: ElementData + Default> {
+    tag: Cell<Tag>,
+    generation: Cell<Generation>,
+    status: Cell<ElementStatus>,
+    data: RefCell<D>,
 }
 
-/// A custom impl for Default so that generation defaults to 1
-impl Default for ElementProperties {
+impl<D: ElementData + Default> Default for MeshElement<D> {
     fn default() -> Self {
-        ElementProperties {
-            generation: 1,
-            status: ElementStatus::INACTIVE,
-            tag: 0,
+        MeshElement {
+            tag: Cell::new(0),
+            generation: Cell::new(1),
+            status: Cell::new(ElementStatus::INACTIVE),
+            data: RefCell::default()
         }
     }
 }
 
-/// Trait for accessing Mesh element properties.
-#[derive(Debug, Clone, Default)]
-pub struct MeshElement<D: ElementData + Default> {
-    pub props: RefCell<ElementProperties>,
-    data: RefCell<D>,
-}
-
 impl<D: ElementData + Default> MeshElement<D> {
+    pub fn with_data(data: D) -> Self {
+        MeshElement {
+            data: RefCell::new(data),
+            ..MeshElement::default()
+        }
+    }
+
     pub fn data(&self) -> Ref<D> {
         self.data.borrow()
     }
@@ -159,30 +160,29 @@ impl<D: ElementData + Default> MeshElement<D> {
     }
 }
 
-impl<D: ElementData + Default> Indexable for MeshElement<D> {
+impl<D: ElementData + Default> Storable for MeshElement<D> {
     fn generation(&self) -> usize {
-        self.props.borrow().generation
+        self.generation.get()
     }
 
     fn set_generation(&self, generation: usize) {
-        self.props.borrow_mut().generation = generation;
+        self.generation.set(generation);
     }
 }
 
 impl<D: ElementData + Default> Taggable for MeshElement<D> {
     fn tag(&self) -> usize {
-        self.props.borrow().tag
+        self.tag.get()
     }
 
     fn set_tag(&self, tag: usize) {
-        self.props.borrow_mut().tag = tag;
+        self.tag.set(tag);
     }
 }
 
 impl<D: ElementData + Default> IsActive for MeshElement<D> {
     fn is_active(&self) -> bool {
-        let props = self.props.borrow();
-        props.status == ElementStatus::ACTIVE
+        self.status.get() == ElementStatus::ACTIVE
     }
 }
 

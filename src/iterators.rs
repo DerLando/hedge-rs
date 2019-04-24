@@ -10,7 +10,7 @@ pub struct ElementEnumerator<'mesh, E> {
     iter: Enumerate<Iter<'mesh, E>>,
 }
 
-impl<'mesh, E: IsActive + Taggable + Indexable> ElementEnumerator<'mesh, E> {
+impl<'mesh, E: IsActive + Taggable + Storable> ElementEnumerator<'mesh, E> {
     pub fn new(tag: Tag, iter: Enumerate<Iter<'mesh, E>>) -> ElementEnumerator<'mesh, E> {
         debug!("New element enumerator");
         ElementEnumerator { tag, iter }

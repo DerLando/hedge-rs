@@ -1,10 +1,9 @@
 
-use super::{Point, IsValid, ElementStatus};
+use super::{Point, IsValid, IsActive};
 
 
 impl IsValid for Point {
     fn is_valid(&self) -> bool {
-        let props = self.props.borrow();
-        props.status == ElementStatus::ACTIVE
+        self.is_active()
     }
 }

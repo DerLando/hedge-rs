@@ -4,7 +4,7 @@ use std::slice::Iter;
 use std::iter::Enumerate;
 
 use super::{
-    MeshElement, IsValid, IsActive, Index, ElementStatus, ElementData,
+    MeshElement, IsValid, IsActive, Storable, Index, ElementStatus, ElementData,
     Face, Edge, Vertex, Point, AddElement, RemoveElement, GetElement,
     EdgeData, FaceData, VertexData, PointData
 };
@@ -57,8 +57,7 @@ impl<D: ElementData + Default> ElementBuffer<D> {
         index: &Index<MeshElement<D>>
     ) -> Option<&'mesh MeshElement<D>> {
         if index.generation > 0 {
-            let props = element.props.borrow();
-            if props.generation == index.generation {
+            if element.generation() == index.generation {
                 Some(element)
             } else {
                 None
@@ -85,15 +84,14 @@ impl<D: ElementData + Default> ElementBuffer<D> {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index.offset];
             *cell = element;
-            let mut props = cell.props.borrow_mut();
-            props.generation = index.generation;
-            props.status = ElementStatus::ACTIVE;
+            cell.status.set(ElementStatus::ACTIVE);
+            cell.generation.set(index.generation);
             return index;
         } else {
-            let index = Index::with_generation(self.buffer.len(), element.props.borrow().generation);
+            let index = Index::with_generation(self.buffer.len(), element.generation.get());
             self.buffer.push(element);
             if let Some(element) = self.buffer.get_mut(index.offset) {
-                element.props.borrow_mut().status = ElementStatus::ACTIVE;
+                element.status.set(ElementStatus::ACTIVE);
             }
             return index;
         }
@@ -102,10 +100,10 @@ impl<D: ElementData + Default> ElementBuffer<D> {
     pub fn remove(&mut self, index: Index<MeshElement<D>>) {
         if let Some(cell) = self.get(&index) {
             let removed_index ={
-                let mut props = cell.props.borrow_mut();
-                props.generation = props.generation + 1;
-                props.status = ElementStatus::INACTIVE;
-                Index::with_generation(index.offset, props.generation)
+                let prev_gen = cell.generation.get();
+                cell.generation.set(prev_gen + 1);
+                cell.status.set(ElementStatus::INACTIVE);
+                Index::with_generation(index.offset, cell.generation.get())
             };
             self.free_cells.push(removed_index);
         }
