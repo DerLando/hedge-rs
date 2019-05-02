@@ -231,11 +231,85 @@ impl Kernel {
         }
     }
 
+    fn defrag_edges(&mut self) {
+        if self.edge_buffer.has_inactive_cells() {
+            // The edge array can't be sorted as easily
+            // as faces and vertices because an edge
+            // refers to other elements in the same buffer.
+            // Our aproach here needs to be incremental and
+            // swap the first active cell from the end of the
+            // buffer with first inactive cell from the front
+            // of the buffer.
+            loop {
+                let inactive_offset = self.edge_buffer.enumerate()
+                    .find(|e| !e.1.is_active())
+                    .map(|e| e.0);
+                let active_offset = self.edge_buffer.enumerate()
+                    .rev().find(|e| e.1.is_active())
+                    .map(|e| e.0);
+                if active_offset.is_none() || inactive_offset.is_none() {
+                    // If we can't find both an active and inactive cell
+                    // offset then we have nothing to do.
+                    return;
+                }
+                let inactive_offset = inactive_offset.unwrap();
+                let active_offset = active_offset.unwrap();
+                if active_offset > inactive_offset {
+                    // by the time this is true we should have sorted/swapped
+                    // all elements so that the inactive inactive elements
+                    // make up the tail of the buffer.
+                    return;
+                }
+
+                self.edge_buffer.buffer.swap(inactive_offset, active_offset);
+                let swapped_edge = &self.edge_buffer.buffer[inactive_offset];
+                let swapped_data = swapped_edge.data();
+                let swapped_index = EdgeIndex::with_generation(inactive_offset, swapped_edge.generation());
+
+                if let Some(next_edge) = self.edge_buffer.get(&swapped_data.next_index) {
+                    next_edge.data_mut().prev_index = swapped_index;
+                }
+                if let Some(prev_edge) = self.edge_buffer.get(&swapped_data.prev_index) {
+                    prev_edge.data_mut().next_index = swapped_index;
+                }
+                if let Some(twin_edge) = self.edge_buffer.get(&swapped_data.twin_index) {
+                    twin_edge.data_mut().twin_index = swapped_index;
+                }
+
+                // For faces and vertices we only want to update the
+                // associated edge index when it matched the original
+                // buffer location.
+                // I'm doing this in case the associated root edge
+                // index for these elements is meaningful or important.
+
+                if let Some(face) = self.face_buffer.get(&swapped_data.face_index) {
+                    let face_data = face.data_mut();
+                    if face_data.edge_index.offset == active_offset {
+                        face_data.edge_index = swapped_index;
+                    }
+                }
+                if let Some(vertex) = self.vertex_buffer.get(&swapped_data.vertex_index) {
+                    let vertex_data = vertex.data_mut();
+                    if vertex_data.edge_index.offset == active_offset {
+                        vertex_data.edge_index = swapped_index;
+                    }
+                }
+            }
+        }
+        truncate_inactive(&mut self.edge_buffer);
+    }
+
+    fn defrag_points(&mut self) {
+        unimplemented!()
+    }
+
     /// Sorts buffers and drops all inactive elements.
     pub fn collect(&mut self) {
         if self.inactive_element_count() > 0 {
             self.defrag_faces();
             self.defrag_verts();
+            self.defrag_points();
+            self.defrag_edges();
         }
     }
 
