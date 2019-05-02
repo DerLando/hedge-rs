@@ -457,16 +457,19 @@ mod tests {
         kernel: &mut Kernel,
         prev_index: EdgeIndex,
         next_index: EdgeIndex
-    ) {
+    ) -> VertexIndex {
+        let v0 = kernel.add_element(Vertex::default());
         match (kernel.get_element(&prev_index),
                kernel.get_element(&next_index)) {
             (Some(prev), Some(next)) => {
                 prev.data.borrow_mut().next_index = next_index;
                 next.data.borrow_mut().prev_index = prev_index;
+                next.data.borrow_mut().vertex_index = v0;
             },
             _ => panic!("Invalid edge indexes specified: {:?}, {:?}",
                         prev_index, next_index),
         }
+        v0
     }
 
     fn make_face(kernel: &mut Kernel, root_edge: EdgeIndex) -> FaceIndex {
@@ -496,9 +499,9 @@ mod tests {
         let e1 = new_edge(kernel);
         let e2 = new_edge(kernel);
 
-        connect_edges(kernel, e0, e1);
-        connect_edges(kernel, e1, e2);
-        connect_edges(kernel, e2, e0);
+        let _ = connect_edges(kernel, e0, e1);
+        let _ = connect_edges(kernel, e1, e2);
+        let _ = connect_edges(kernel, e2, e0);
 
         make_face(kernel, e0)
     }
@@ -544,5 +547,48 @@ mod tests {
             .buffer[root_face_index.offset]
             .data.borrow().edge_index;
         assert_eq!(face_edge_index, root_edge);
+    }
+
+    #[test]
+    fn defrag_vertices() {
+        let _ = env_logger::try_init();
+        let mut kernel = Kernel::default();
+
+        let e0 = new_edge(&mut kernel);
+        let e1 = new_edge(&mut kernel);
+        let e2 = new_edge(&mut kernel);
+
+        let v0_0 = connect_edges(&mut kernel, e0, e1);
+        let v0_1 = connect_edges(&mut kernel, e1, e2);
+        let v0_2 = connect_edges(&mut kernel, e2, e0);
+
+        let v1_0 = connect_edges(&mut kernel, e0, e1);
+        let v1_1 = connect_edges(&mut kernel, e1, e2);
+        let v1_2 = connect_edges(&mut kernel, e2, e0);
+
+        let v2_0 = connect_edges(&mut kernel, e0, e1);
+        let v2_1 = connect_edges(&mut kernel, e1, e2);
+        let v2_2 = connect_edges(&mut kernel, e2, e0);
+
+        assert_eq!(kernel.vertex_buffer.len(), 10);
+
+        kernel.remove_element(v0_0);
+        kernel.remove_element(v0_1);
+        kernel.remove_element(v0_2);
+        kernel.remove_element(v1_0);
+        kernel.remove_element(v1_1);
+        kernel.remove_element(v1_2);
+
+        assert_eq!(kernel.vertex_buffer.len(), 4);
+        assert_eq!(kernel.vertex_buffer.buffer.len(), 10);
+
+        assert!(kernel.vertex_buffer.get(&v2_0).is_some());
+        assert!(kernel.vertex_buffer.get(&v2_1).is_some());
+        assert!(kernel.vertex_buffer.get(&v2_2).is_some());
+
+        kernel.defrag_verts();
+        assert!(kernel.vertex_buffer.get(&v2_0).is_none());
+        assert!(kernel.vertex_buffer.get(&v2_1).is_none());
+        assert!(kernel.vertex_buffer.get(&v2_2).is_none());
     }
 }

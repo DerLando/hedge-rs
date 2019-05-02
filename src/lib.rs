@@ -228,7 +228,7 @@ pub type VertexIndex = Index<Vertex>;
 impl ElementData for VertexData {}
 impl ElementIndex for VertexIndex {}
 
-/// TODO
+/// TODO: Documentation
 #[derive(Debug, Clone, Default)]
 pub struct FaceData {
     /// The "root" of an edge loop that defines this face.
@@ -365,4 +365,161 @@ impl Mesh {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+    use log::*;
+
+    #[test]
+    fn basic_debug_printing() {
+        let _ = env_logger::try_init();
+
+        let edge = Edge::default();
+        debug!("{:?}", edge);
+
+        let vertex = Vertex::default();
+        debug!("{:?}", vertex);
+
+        let face = Face::default();
+        debug!("{:?}", face);
+
+        let point = Point::default();
+        debug!("{:?}", point);
+
+        let mesh = Mesh::new();
+        debug!("{:?}", mesh);
+    }
+
+    #[test]
+    fn index_types_are_invalid_by_default() {
+        let vert = EdgeIndex::default();
+        assert!(!vert.is_valid());
+
+        let edge = EdgeIndex::default();
+        assert!(!edge.is_valid());
+
+        let point = PointIndex::default();
+        assert!(!point.is_valid());
+
+        let face = FaceIndex::default();
+        assert!(!face.is_valid());
+    }
+
+    #[test]
+    fn default_edge_is_invalid() {
+        let edge = Edge::default();
+        assert_eq!(edge.is_valid(), false);
+    }
+
+    #[test]
+    fn default_vertex_is_invalid() {
+        let vertex = Vertex::default();
+        assert_eq!(vertex.is_valid(), false);
+    }
+
+    #[test]
+    fn default_face_is_invalid() {
+        let face = Face::default();
+        assert_eq!(face.is_valid(), false);
+    }
+
+    #[test]
+    fn default_point_is_invalid() {
+        let point = Point::default();
+        assert_eq!(point.is_valid(), false);
+    }
+
+    #[test]
+    fn default_point_is_valid_after_added_to_mesh() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+
+        let pindex = {
+            let point = Point::default();
+            assert_eq!(point.is_valid(), false);
+            mesh.add_element(point)
+        };
+
+        assert_eq!(mesh.get_element(&pindex).is_some(), true);
+    }
+
+    #[test]
+    fn initial_mesh_has_default_elements() {
+        let _ = env_logger::try_init();
+        let mesh = Mesh::new();
+
+        assert_eq!(mesh.edge_count(), 0);
+        assert_eq!(mesh.get_element(&EdgeIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.kernel.edge_buffer.len(), 1);
+
+        assert_eq!(mesh.face_count(), 0);
+        assert_eq!(mesh.get_element(&FaceIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.kernel.face_buffer.len(), 1);
+
+        assert_eq!(mesh.vertex_count(), 0);
+        assert_eq!(mesh.get_element(&VertexIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
+
+        assert_eq!(mesh.point_count(), 0);
+        assert_eq!(mesh.get_element(&PointIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.kernel.point_buffer.len(), 1);
+    }
+
+    #[test]
+    fn can_add_and_remove_vertices() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+        let v0 = mesh.add_element(Vertex::default());
+        assert_eq!(mesh.vertex_count(), 1);
+        assert_eq!(mesh.kernel.vertex_buffer.len(), 2);
+        mesh.remove_element(v0);
+        assert_eq!(mesh.vertex_count(), 0);
+        assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
+    }
+
+    #[test]
+    fn can_add_and_remove_edges() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+        let e0 = mesh.add_element(Edge::default());
+        assert_eq!(mesh.edge_count(), 1);
+        assert_eq!(mesh.kernel.edge_buffer.len(), 2);
+        mesh.remove_element(e0);
+        assert_eq!(mesh.edge_count(), 0);
+        assert_eq!(mesh.kernel.edge_buffer.len(), 1);
+    }
+
+    #[test]
+    fn can_add_and_remove_faces() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+        let f0 = mesh.add_element(Face::default());
+        assert_eq!(mesh.face_count(), 1);
+        assert_eq!(mesh.kernel.face_buffer.len(), 2);
+        mesh.remove_element(f0);
+        assert_eq!(mesh.face_count(), 0);
+        assert_eq!(mesh.kernel.face_buffer.len(), 1);
+    }
+
+    #[test]
+    fn can_add_and_remove_points() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+        let p0 = mesh.add_element(Point::default());
+        assert_eq!(mesh.point_count(), 1);
+        assert_eq!(mesh.kernel.point_buffer.len(), 2);
+        mesh.remove_element(p0);
+        assert_eq!(mesh.point_count(), 0);
+        assert_eq!(mesh.kernel.point_buffer.len(), 1);
+    }
+
+    #[test]
+    fn can_add_triangles_to_mesh() {
+        let _ = env_logger::try_init();
+        unimplemented!();
+    }
+
+    #[test]
+    fn can_build_a_simple_mesh() {
+        unimplemented!();
+    }
+}
