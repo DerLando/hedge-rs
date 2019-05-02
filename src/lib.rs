@@ -57,6 +57,8 @@ pub trait Taggable {
 pub trait Storable {
     fn generation(&self) -> Generation;
     fn set_generation(&self, generation: Generation);
+    fn status(&self) -> ElementStatus;
+    fn set_status(&self, status: ElementStatus);
 }
 
 /// Our default value for uninitialized or unconnected components in the mesh.
@@ -167,6 +169,14 @@ impl<D: ElementData + Default> Storable for MeshElement<D> {
 
     fn set_generation(&self, generation: usize) {
         self.generation.set(generation);
+    }
+
+    fn status(&self) -> ElementStatus {
+        self.status.get()
+    }
+
+    fn set_status(&self, status: ElementStatus) {
+        self.status.set(status);
     }
 }
 
