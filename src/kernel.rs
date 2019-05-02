@@ -151,11 +151,13 @@ impl<D: ElementData + Default> ElementBuffer<D> {
         if active_offset.is_none() || inactive_offset.is_none() {
             // If we can't find both an active and inactive cell
             // offset then we have nothing to do.
+            debug!("No more swap pairs!");
             None
         } else {
             let inactive_offset = inactive_offset.unwrap();
             let active_offset = active_offset.unwrap();
-            if active_offset > inactive_offset {
+            if active_offset < inactive_offset {
+                debug!("Buffer appears to be successfully sorted!");
                 // by the time this is true we should have sorted/swapped
                 // all elements so that the inactive inactive elements
                 // make up the tail of the buffer.
@@ -259,7 +261,7 @@ impl Kernel {
             // buffer with first inactive cell from the front
             // of the buffer.
             loop {
-                if let Some(offsets) = {self.edge_buffer.next_swap_pair()} {
+                if let Some(offsets) = self.edge_buffer.next_swap_pair() {
                     let inactive_offset = offsets.0;
                     let active_offset = offsets.1;
 
@@ -453,6 +455,29 @@ mod tests {
         e0
     }
 
+    fn make_twin_edge(kernel: &mut Kernel, twin_index: EdgeIndex) -> EdgeIndex {
+        let e0 = kernel.add_element(Edge::with_data(
+            EdgeData {
+                twin_index,
+                ..EdgeData::default()
+            }
+        ));
+        kernel.edge_buffer.buffer[twin_index.offset].data.borrow_mut().twin_index = e0;
+        e0
+    }
+
+    fn get_twin(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
+        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().twin_index
+    }
+
+    fn get_next(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
+        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().next_index
+    }
+
+    fn get_prev(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
+        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().prev_index
+    }
+
     fn connect_edges(
         kernel: &mut Kernel,
         prev_index: EdgeIndex,
@@ -472,12 +497,9 @@ mod tests {
         v0
     }
 
-    fn make_face(kernel: &mut Kernel, root_edge: EdgeIndex) -> FaceIndex {
-        let face_index = kernel.add_element(
-            Face::with_data(FaceData {
-                edge_index: root_edge
-            })
-        );
+    fn set_face_to_loop(kernel: &Kernel, root_edge: EdgeIndex, face_index: FaceIndex) {
+        let face = kernel.face_buffer.get(&face_index).unwrap();
+        face.data.borrow_mut().edge_index = root_edge;
         let mut edge_index = root_edge;
         loop {
             let edge = &kernel.edge_buffer.buffer[edge_index.offset];
@@ -491,6 +513,15 @@ mod tests {
             }
             edge_index = data.next_index;
         }
+    }
+
+    fn make_face(kernel: &mut Kernel, root_edge: EdgeIndex) -> FaceIndex {
+        let face_index = kernel.add_element(
+            Face::with_data(FaceData {
+                edge_index: root_edge
+            })
+        );
+        set_face_to_loop(kernel, root_edge, face_index);
         face_index
     }
 
@@ -590,5 +621,81 @@ mod tests {
         assert!(kernel.vertex_buffer.get(&v2_0).is_none());
         assert!(kernel.vertex_buffer.get(&v2_1).is_none());
         assert!(kernel.vertex_buffer.get(&v2_2).is_none());
+    }
+
+    #[test]
+    fn defrag_edges() {
+        let _ = env_logger::try_init();
+        let mut kernel = Kernel::default();
+
+        let e0 = new_edge(&mut kernel);
+        let e1 = new_edge(&mut kernel);
+        let e2 = new_edge(&mut kernel);
+        let v0 = connect_edges(&mut kernel, e0, e1);
+        let v1 = connect_edges(&mut kernel, e1, e2);
+        let v2 = connect_edges(&mut kernel, e2, e0);
+
+        let e3 = get_twin(&kernel, e0);
+        let e4 = new_edge(&mut kernel);
+        let e5 = new_edge(&mut kernel);
+        let v3 = connect_edges(&mut kernel, e3, e4);
+        let v4 = connect_edges(&mut kernel, e4, e5);
+        let v5 = connect_edges(&mut kernel, e5, e3);
+
+        let e6 = get_twin(&kernel, e4);
+        let e7 = get_twin(&kernel, e2);
+        let e8 = new_edge(&mut kernel);
+        let v6 = connect_edges(&mut kernel, e6, e7);
+        let v7 = connect_edges(&mut kernel, e7, e8);
+        let v8 = connect_edges(&mut kernel, e8, e6);
+
+        let e9  = get_twin(&kernel, e8);
+        let e10 = get_twin(&kernel, e1);
+        let e11 = get_twin(&kernel, e5);
+        let v9  = connect_edges(&mut kernel, e9, e10);
+        let v10 = connect_edges(&mut kernel, e10, e11);
+        let v11 = connect_edges(&mut kernel, e11, e9);
+
+        let f0 = make_face(&mut kernel, e0);
+        let f1 = make_face(&mut kernel, e3);
+        let f2 = make_face(&mut kernel, e6);
+        let f3 = make_face(&mut kernel, e9);
+
+        assert_eq!(kernel.active_element_count(), 32);
+        assert_eq!(kernel.inactive_element_count(), 0);
+
+        let e12 = make_twin_edge(&mut kernel, e3);
+        let e13 = make_twin_edge(&mut kernel, e10);
+        let e14 = make_twin_edge(&mut kernel, e7);
+        let v12 = connect_edges(&mut kernel, e12, e13);
+        let v13 = connect_edges(&mut kernel, e13, e14);
+        let v14 = connect_edges(&mut kernel, e14, e12);
+
+        set_face_to_loop(&kernel, e12, f0);
+        kernel.remove_element(e0);
+        kernel.remove_element(e1);
+        kernel.remove_element(e2);
+
+        assert_eq!(kernel.active_element_count(), 35);
+        assert_eq!(kernel.inactive_element_count(), 3);
+
+        let face0 = &kernel.face_buffer.buffer[f0.offset];
+        assert_eq!(13, face0.data.borrow().edge_index.offset);
+
+        kernel.defrag_edges();
+        assert_eq!(kernel.active_element_count(), 35);
+        assert_eq!(kernel.inactive_element_count(), 0);
+
+        // Because of how the edge defrag is implemented
+        // we expect the offsets for the edges of f0
+        // to be at the head of the edge buffer again
+        let face0 = &kernel.face_buffer.buffer[f0.offset];
+        let f0e0 = face0.data.borrow().edge_index;
+        let f0e1 = get_next(&kernel, f0e0);
+        let f0e2 = get_next(&kernel, f0e1);
+        assert_eq!(f0e0, get_next(&kernel, f0e2));
+        assert_eq!(5, f0e0.offset);
+        assert_eq!(3, f0e1.offset);
+        assert_eq!(1, f0e2.offset);
     }
 }
