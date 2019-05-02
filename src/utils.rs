@@ -1,7 +1,11 @@
 use super::*;
 
 /// Given two vertex indices, create an adjacent edge pair
-pub fn build_full_edge(mesh: &mut Mesh, v0: VertexIndex, v1: VertexIndex) -> EdgeIndex {
+pub fn build_full_edge(
+    mesh: &mut Mesh,
+    v0: VertexIndex,
+    v1: VertexIndex
+) -> EdgeIndex {
     let e0 = mesh.add_element(Edge {
         data: RefCell::new(EdgeData {
             vertex_index: v0,
@@ -27,7 +31,11 @@ pub fn build_full_edge(mesh: &mut Mesh, v0: VertexIndex, v1: VertexIndex) -> Edg
 }
 
 /// Given an edge index, and a vertex index, creates a new edge connected to the specified edge
-pub fn build_full_edge_from(mesh: &mut Mesh, prev: EdgeIndex, v1: VertexIndex) -> EdgeIndex {
+pub fn build_full_edge_from(
+    mesh: &mut Mesh,
+    prev: EdgeIndex,
+    v1: VertexIndex
+) -> EdgeIndex {
     let e0 = {
         let v0 = mesh.edge(prev).twin().vertex().index;
         build_full_edge(mesh, v0, v1)
@@ -36,7 +44,11 @@ pub fn build_full_edge_from(mesh: &mut Mesh, prev: EdgeIndex, v1: VertexIndex) -
     return e0;
 }
 
-pub fn close_edge_loop(mesh: &mut Mesh, prev: EdgeIndex, next: EdgeIndex) -> EdgeIndex {
+pub fn close_edge_loop(
+    mesh: &mut Mesh,
+    prev: EdgeIndex,
+    next: EdgeIndex
+) -> EdgeIndex {
     let v0 = mesh.edge(prev).next().element().map(|e| e.data().vertex_index);
     let v1 = mesh.edge(next).element().map(|e| e.data().vertex_index);
 
@@ -51,7 +63,11 @@ pub fn close_edge_loop(mesh: &mut Mesh, prev: EdgeIndex, next: EdgeIndex) -> Edg
 }
 
 /// Associates a previous and next edge
-pub fn connect_edges(mesh: &mut Mesh, prev: EdgeIndex, next: EdgeIndex) {
+pub fn connect_edges(
+    mesh: &mut Mesh,
+    prev: EdgeIndex,
+    next: EdgeIndex
+) {
     mesh.get_element(&prev).map(|e| e.data.borrow_mut().next_index = next);
     mesh.get_element(&next).map(|e| e.data.borrow_mut().prev_index = prev);
 }
