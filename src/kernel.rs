@@ -475,6 +475,7 @@ mod tests {
         kernel.edge_buffer.buffer[edge_index.offset].data.borrow().next_index
     }
 
+    #[allow(dead_code)]
     fn get_prev(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
         kernel.edge_buffer.buffer[edge_index.offset].data.borrow().prev_index
     }
@@ -632,30 +633,30 @@ mod tests {
         let e0 = new_edge(&mut kernel);
         let e1 = new_edge(&mut kernel);
         let e2 = new_edge(&mut kernel);
-        let v0 = connect_edges(&mut kernel, e0, e1);
-        let v1 = connect_edges(&mut kernel, e1, e2);
-        let v2 = connect_edges(&mut kernel, e2, e0);
+        let _v0 = connect_edges(&mut kernel, e0, e1);
+        let _v1 = connect_edges(&mut kernel, e1, e2);
+        let _v2 = connect_edges(&mut kernel, e2, e0);
 
         let e3 = get_twin(&kernel, e0);
         let e4 = new_edge(&mut kernel);
         let e5 = new_edge(&mut kernel);
-        let v3 = connect_edges(&mut kernel, e3, e4);
-        let v4 = connect_edges(&mut kernel, e4, e5);
-        let v5 = connect_edges(&mut kernel, e5, e3);
+        let _v3 = connect_edges(&mut kernel, e3, e4);
+        let _v4 = connect_edges(&mut kernel, e4, e5);
+        let _v5 = connect_edges(&mut kernel, e5, e3);
 
         let e6 = get_twin(&kernel, e4);
         let e7 = get_twin(&kernel, e2);
         let e8 = new_edge(&mut kernel);
-        let v6 = connect_edges(&mut kernel, e6, e7);
-        let v7 = connect_edges(&mut kernel, e7, e8);
-        let v8 = connect_edges(&mut kernel, e8, e6);
+        let _v6 = connect_edges(&mut kernel, e6, e7);
+        let _v7 = connect_edges(&mut kernel, e7, e8);
+        let _v8 = connect_edges(&mut kernel, e8, e6);
 
         let e9  = get_twin(&kernel, e8);
         let e10 = get_twin(&kernel, e1);
         let e11 = get_twin(&kernel, e5);
-        let v9  = connect_edges(&mut kernel, e9, e10);
-        let v10 = connect_edges(&mut kernel, e10, e11);
-        let v11 = connect_edges(&mut kernel, e11, e9);
+        let _v9  = connect_edges(&mut kernel, e9, e10);
+        let _v10 = connect_edges(&mut kernel, e10, e11);
+        let _v11 = connect_edges(&mut kernel, e11, e9);
 
         let f0 = make_face(&mut kernel, e0);
         let f1 = make_face(&mut kernel, e3);

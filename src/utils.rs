@@ -1,3 +1,4 @@
+use log::*;
 use super::*;
 
 /// Given two vertex indices, create an adjacent edge pair
@@ -23,9 +24,9 @@ pub fn build_full_edge(
         ..Edge::default()
     });
 
-    mesh.get_element(&e0).map(|e| e.data.borrow_mut().twin_index = e1);
-    mesh.get_element(&v0).map(|e| e.data.borrow_mut().edge_index = e0);
-    mesh.get_element(&v1).map(|e| e.data.borrow_mut().edge_index = e1);
+    mesh.get_element(&e0).map(|e| e.data_mut().twin_index = e1);
+    mesh.get_element(&v0).map(|e| e.data_mut().edge_index = e0);
+    mesh.get_element(&v1).map(|e| e.data_mut().edge_index = e1);
 
     return e0;
 }
@@ -49,7 +50,7 @@ pub fn close_edge_loop(
     prev: EdgeIndex,
     next: EdgeIndex
 ) -> EdgeIndex {
-    let v0 = mesh.edge(prev).next().element().map(|e| e.data().vertex_index);
+    let v0 = mesh.edge(prev).twin().element().map(|e| e.data().vertex_index);
     let v1 = mesh.edge(next).element().map(|e| e.data().vertex_index);
 
     if let (Some(v0), Some(v1)) = (v0, v1) {
@@ -58,6 +59,7 @@ pub fn close_edge_loop(
         connect_edges(mesh, e0, next);
         e0
     } else {
+        error!("Failed to properly discover associated vertices.");
         EdgeIndex::default()
     }
 }
@@ -70,4 +72,34 @@ pub fn connect_edges(
 ) {
     mesh.get_element(&prev).map(|e| e.data.borrow_mut().next_index = next);
     mesh.get_element(&next).map(|e| e.data.borrow_mut().prev_index = prev);
+}
+
+pub fn assign_face_to_loop(
+    mesh: &Mesh,
+    root_edge_index: EdgeIndex,
+    face_index: FaceIndex
+) {
+    let face = mesh.face(face_index);
+    if let Some(mut data) = face.data_mut() {
+        data.edge_index = root_edge_index;
+    } else {
+        error!("Invalid face index specified: {:?}", face_index);
+        return;
+    }
+    let mut edge = face.edge();
+    loop {
+        if let Some(mut data) = edge.data_mut() {
+            if data.face_index == face.index {
+                break;
+            }
+            data.face_index = face.index;
+            if data.next_index == root_edge_index {
+                break;
+            }
+        } else {
+            error!("Invalid edge index! {:?}", edge.index);
+            break;
+        }
+        edge = edge.next();
+    }
 }

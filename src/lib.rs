@@ -9,18 +9,10 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::marker::PhantomData;
 use std::hash::{Hash, Hasher};
 
-pub use crate::edge::*;
-pub use crate::face::*;
-pub use crate::vertex::*;
-pub use crate::point::*;
 pub use crate::kernel::*;
 pub use crate::function_sets::*;
 pub use crate::iterators::*;
 
-pub mod edge;
-pub mod face;
-pub mod vertex;
-pub mod point;
 pub mod kernel;
 pub mod utils;
 pub mod function_sets;
@@ -196,7 +188,7 @@ impl<D: ElementData + Default> IsActive for MeshElement<D> {
     }
 }
 
-/// TODO
+/// TODO: Documentation
 #[derive(Debug, Clone, Default)]
 pub struct EdgeData {
     /// The adjacent or 'twin' half-edge
@@ -214,8 +206,27 @@ pub type Edge = MeshElement<EdgeData>;
 pub type EdgeIndex = Index<Edge>;
 impl ElementData for EdgeData {}
 impl ElementIndex for  EdgeIndex {}
+impl Edge {
+    /// Returns true when this edge has a previous and next edge.
+    pub fn is_connected(&self) -> bool {
+        let data = self.data.borrow();
+        data.next_index.is_valid() && data.prev_index.is_valid()
+    }
+}
+impl IsValid for Edge {
+    /// An Edge is valid when it has a valid twin index, a valid vertex index
+    /// and `is_connected`
+    fn is_valid(&self) -> bool {
+        let data = self.data.borrow();
+        self.is_active() &&
+            data.vertex_index.is_valid() &&
+            data.twin_index.is_valid() &&
+            data.next_index.is_valid() &&
+            data.prev_index.is_valid()
+    }
+}
 
-/// TODO
+/// TODO: Documentation
 #[derive(Debug, Clone, Default)]
 pub struct VertexData {
     /// Index of the outgoing edge
@@ -227,6 +238,31 @@ pub type Vertex = MeshElement<VertexData>;
 pub type VertexIndex = Index<Vertex>;
 impl ElementData for VertexData {}
 impl ElementIndex for VertexIndex {}
+impl Vertex {
+    pub fn new(edge_index: EdgeIndex, point_index: PointIndex) -> Self {
+        Vertex::with_data(VertexData { edge_index, point_index })
+    }
+
+    pub fn for_edge(edge_index: EdgeIndex) -> Self {
+        Vertex::with_data(VertexData {
+            edge_index,
+            ..VertexData::default()
+        })
+    }
+
+    pub fn at_point(point_index: PointIndex) -> Self {
+        Vertex::with_data(VertexData {
+            point_index,
+            ..VertexData::default()
+        })
+    }
+}
+impl IsValid for Vertex {
+    /// A vertex is considered "valid" as long as it has a valid edge index.
+    fn is_valid(&self) -> bool {
+        self.is_active() && self.data().edge_index.is_valid()
+    }
+}
 
 /// TODO: Documentation
 #[derive(Debug, Clone, Default)]
@@ -238,10 +274,29 @@ pub type Face = MeshElement<FaceData>;
 pub type FaceIndex = Index<Face>;
 impl ElementData for FaceData {}
 impl ElementIndex for FaceIndex {}
+impl Face {
+    pub fn new(edge_index: EdgeIndex) -> Self {
+        Face::with_data(FaceData { edge_index })
+    }
+}
+impl IsValid for Face {
+    /// A face is considered "valid" as long as it has an edge index
+    /// other than `INVALID_COMPONENT_INDEX`
+    fn is_valid(&self) -> bool {
+        self.is_active() && self.data().edge_index.is_valid()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct PointData {
     pub position: Position,
+}
+impl PointData {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        PointData {
+            position: [x, y, z],
+        }
+    }
 }
 impl Default for PointData {
     fn default() -> Self {
@@ -254,6 +309,16 @@ pub type Point = MeshElement<PointData>;
 pub type PointIndex = Index<Point>;
 impl ElementData for PointData {}
 impl ElementIndex for PointIndex {}
+impl Point {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Point::with_data(PointData::new(x, y, z))
+    }
+}
+impl IsValid for Point {
+    fn is_valid(&self) -> bool {
+        self.is_active()
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -311,10 +376,6 @@ impl Mesh {
         self.kernel.face_buffer.len() - 1
     }
 
-    //pub fn faces(&self) -> FaceFnIterator {
-    //    FaceFnIterator::new(&self)
-    //}
-
     /// Returns an `EdgeFn` for the given index.
     pub fn edge(&self, index: EdgeIndex) -> EdgeFn {
         EdgeFn::new(index, &self)
@@ -324,10 +385,6 @@ impl Mesh {
         self.kernel.edge_buffer.len() - 1
     }
 
-    //pub fn edges(&self) -> EdgeFnIterator {
-    //    EdgeFnIterator::new(&self)
-    //}
-
     /// Returns a `VertexFn` for the given index.
     pub fn vertex(&self, index: VertexIndex) -> VertexFn {
         VertexFn::new(index, &self)
@@ -336,10 +393,6 @@ impl Mesh {
     pub fn vertex_count(&self) -> usize {
         self.kernel.vertex_buffer.len() - 1
     }
-
-    //pub fn vertices(&self) -> VertexFnIterator {
-    //    VertexFnIterator::new(&self)
-    //}
 
     pub fn point_count(&self) -> usize {
         self.kernel.point_buffer.len() - 1
@@ -513,13 +566,38 @@ mod tests {
     }
 
     #[test]
-    fn can_add_triangles_to_mesh() {
+    fn can_build_a_simple_mesh_manually() {
         let _ = env_logger::try_init();
-        unimplemented!();
-    }
+        let mut mesh = Mesh::new();
 
-    #[test]
-    fn can_build_a_simple_mesh() {
-        unimplemented!();
+        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
+
+        let v0 = mesh.add_element(Vertex::at_point(p0));
+        let v1 = mesh.add_element(Vertex::at_point(p1));
+        let v2 = mesh.add_element(Vertex::at_point(p2));
+
+        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
+        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
+        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+
+        let f0 = mesh.add_element(Face::default());
+        utils::assign_face_to_loop(&mesh, e0, f0);
+
+        assert!(mesh.edge(e0).is_boundary());
+        assert!(mesh.edge(e1).is_boundary());
+        assert!(mesh.edge(e2).is_boundary());
+        assert_eq!(mesh.edge(e0).face().index, f0);
+        assert_eq!(mesh.edge(e1).face().index, f0);
+        assert_eq!(mesh.edge(e2).face().index, f0);
+
+        assert_eq!(mesh.edge(e0).vertex().index, v0);
+        assert_eq!(mesh.edge(e1).vertex().index, v1);
+        assert_eq!(mesh.edge(e2).vertex().index, v2);
+
+        assert_eq!(mesh.edge(e0).twin().vertex().index, v1);
+        assert_eq!(mesh.edge(e1).twin().vertex().index, v2);
+        assert_eq!(mesh.edge(e2).twin().vertex().index, v0);
     }
 }
