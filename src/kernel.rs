@@ -324,7 +324,8 @@ impl Kernel {
 
                     self.point_buffer.buffer.swap(inactive_offset, active_offset);
                     let swapped = &self.point_buffer.buffer[inactive_offset];
-                    let swapped_index = Index::with_generation(inactive_offset, swapped.generation.get());
+                    let swapped_index = Index::with_generation(
+                        inactive_offset, swapped.generation.get());
 
                     self.vertex_buffer.buffer[1..].iter()
                         .filter(|v| v.is_active() && v.data().point_index.offset == active_offset)
@@ -340,7 +341,7 @@ impl Kernel {
     }
 
     /// Sorts buffers and drops all inactive elements.
-    pub fn collect(&mut self) {
+    pub fn defrag(&mut self) {
         if self.inactive_element_count() > 0 {
             self.defrag_faces();
             self.defrag_verts();
@@ -680,7 +681,13 @@ mod tests {
         assert_eq!(kernel.inactive_element_count(), 3);
 
         let face0 = &kernel.face_buffer.buffer[f0.offset];
-        assert_eq!(13, face0.data.borrow().edge_index.offset);
+        let f0e0 = face0.data.borrow().edge_index;
+        let f0e1 = get_next(&kernel, f0e0);
+        let f0e2 = get_next(&kernel, f0e1);
+        assert_eq!(f0e0, get_next(&kernel, f0e2));
+        assert_eq!(13, f0e0.offset);
+        assert_eq!(14, f0e1.offset);
+        assert_eq!(15, f0e2.offset);
 
         kernel.defrag_edges();
         assert_eq!(kernel.active_element_count(), 35);
@@ -689,6 +696,7 @@ mod tests {
         // Because of how the edge defrag is implemented
         // we expect the offsets for the edges of f0
         // to be at the head of the edge buffer again
+        // and basically reversed.
         let face0 = &kernel.face_buffer.buffer[f0.offset];
         let f0e0 = face0.data.borrow().edge_index;
         let f0e1 = get_next(&kernel, f0e0);
@@ -697,5 +705,51 @@ mod tests {
         assert_eq!(5, f0e0.offset);
         assert_eq!(3, f0e1.offset);
         assert_eq!(1, f0e2.offset);
+    }
+
+    #[test]
+    fn defrag_points() {
+        let _ = env_logger::try_init();
+        let mut kernel = Kernel::default();
+
+        let p0 = kernel.add_element(Point::default());
+        let p1 = kernel.add_element(Point::default());
+        let p2 = kernel.add_element(Point::default());
+        let p3 = kernel.add_element(Point::default());
+
+        let v0 = kernel.add_element(Vertex::with_data(
+            VertexData {
+                point_index: p1,
+                ..VertexData::default()
+            }));
+        let v1 = kernel.add_element(Vertex::with_data(
+            VertexData {
+                point_index: p1,
+                ..VertexData::default()
+            }));
+        let v2 = kernel.add_element(Vertex::with_data(
+            VertexData {
+                point_index: p3,
+                ..VertexData::default()
+            }));
+        let v3 = kernel.add_element(Vertex::with_data(
+            VertexData {
+                point_index: p3,
+                ..VertexData::default()
+            }));
+
+        assert_eq!(kernel.vertex_buffer.buffer[v0.offset].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v1.offset].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v2.offset].data().point_index.offset, 4);
+        assert_eq!(kernel.vertex_buffer.buffer[v3.offset].data().point_index.offset, 4);
+
+        kernel.remove_element(p0);
+        kernel.remove_element(p2);
+        kernel.defrag_points();
+
+        assert_eq!(kernel.vertex_buffer.buffer[v0.offset].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v1.offset].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v2.offset].data().point_index.offset, 1);
+        assert_eq!(kernel.vertex_buffer.buffer[v3.offset].data().point_index.offset, 1);
     }
 }
