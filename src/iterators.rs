@@ -5,156 +5,165 @@ use std::iter::Enumerate;
 use log::*;
 use super::*;
 
-pub struct ElementEnumerator<'mesh, E> {
+pub enum CirculatorMode {
+    Face,
+    Edge,
+    Vertex,
+}
+
+pub struct Circulator;
+
+pub struct FaceEdges<'mesh> {
     tag: Tag,
-    iter: Enumerate<Iter<'mesh, E>>,
+    root_edge: EdgeFn<'mesh>,
+    last_edge: Option<EdgeFn<'mesh>>,
 }
 
-impl<'mesh, E: IsActive + Taggable + Storable> ElementEnumerator<'mesh, E> {
-    pub fn new(tag: Tag, iter: Enumerate<Iter<'mesh, E>>) -> ElementEnumerator<'mesh, E> {
-        debug!("New element enumerator");
-        ElementEnumerator { tag, iter }
-    }
-
-    pub fn next_element(&mut self) -> Option<(Index<E>, &'mesh E)> {
-        for (offset, element) in self.iter.by_ref() {
-            let is_next = element.is_active() && element.tag() != self.tag;
-            if is_next {
-                element.set_tag(self.tag);
-                let index = Index::with_generation(offset, element.generation());
-                return Some((index, element));
-            }
+impl<'mesh> FaceEdges<'mesh> {
+    pub fn new(tag: Tag, face: FaceFn<'mesh>) -> Self {
+        FaceEdges {
+            tag,
+            root_edge: face.edge(),
+            last_edge: None
         }
-        debug!("Element enumeration completed.");
-        return None;
     }
 }
 
-pub type VertexEnumerator<'mesh> = ElementEnumerator<'mesh, Vertex>;
-pub type FaceEnumerator<'mesh> = ElementEnumerator<'mesh, Face>;
-pub type EdgeEnumerator<'mesh> = ElementEnumerator<'mesh, Edge>;
-pub type PointEnumerator<'mesh> = ElementEnumerator<'mesh, Point>;
+impl<'mesh> Iterator for FaceEdges<'mesh> {
+    type Item = EdgeFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.last_edge = if let Some(last_edge) = self.last_edge {
+            let next_edge = last_edge.next();
+            next_edge.element()
+                .and_then(|edge| {
+                    if edge.tag() == self.tag {
+                        None
+                    } else {
+                        edge.set_tag(self.tag);
+                        Some(next_edge)
+                    }
+                })
+                .and_then(|next_edge| {
+                    if next_edge.index == self.root_edge.index {
+                        None
+                    } else {
+                        Some(next_edge)
+                    }
+                })
+        } else {
+            Some(self.root_edge)
+        };
+        self.last_edge
+    }
+}
+
+pub struct FaceVertices<'mesh> {
+    inner_iter: FaceEdges<'mesh>,
+}
+
+impl<'mesh> FaceVertices<'mesh> {
+    pub fn new(tag: Tag, face: FaceFn<'mesh>) -> Self {
+        let inner_iter = FaceEdges {
+            tag,
+            root_edge: face.edge(),
+            last_edge: None
+        };
+        FaceVertices { inner_iter }
+    }
+}
+
+impl<'mesh> Iterator for FaceVertices<'mesh> {
+    type Item = VertexFn<'mesh>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_iter.next().map(|edge| edge.vertex())
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::*;
 
     #[test]
-    fn can_iterate_over_faces() {
-        let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
-
-        mesh.add_element(Face::new(EdgeIndex::new(1)));
-        mesh.add_element(Face::new(EdgeIndex::new(4)));
-        mesh.add_element(Face::new(EdgeIndex::new(7)));
-
-        unimplemented!()
-
-        //assert_eq!(mesh.face_count(), 3);
-
-        //let mut faces_iterated_over = 0;
-
-        //for face in mesh.faces() {
-        //    assert!(face.is_valid());
-        //    faces_iterated_over += 1;
-        //}
-        //
-        //assert_eq!(faces_iterated_over, 3);
-    }
-
-    #[test]
-    fn can_iterate_over_vertices() {
-        let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
-
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        let v = mesh.add_element(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
-        mesh.remove_element(v);
-
-        unimplemented!()
-
-        //let mut vertices_iterated_over = 0;
-
-        //for vert in mesh.vertices() {
-        //    assert!(vert.is_valid());
-        //    assert_ne!(vert.element.edge_index.get().offset, 4);
-        //    vertices_iterated_over += 1;
-        //}
-
-        //assert_eq!(vertices_iterated_over, 3);
-    }
-
-    #[test]
-    fn can_iterate_over_edges() {
-        let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
-
-        mesh.add_element(Edge::with_data(
-            EdgeData {
-                twin_index: EdgeIndex::new(1),
-                next_index: EdgeIndex::new(2),
-                prev_index: EdgeIndex::new(3),
-                face_index: FaceIndex::new(1),
-                vertex_index: VertexIndex::new(1),
-            }
-        ));
-
-        mesh.add_element(Edge::with_data(
-            EdgeData {
-                twin_index: EdgeIndex::new(1),
-                next_index: EdgeIndex::new(3),
-                prev_index: EdgeIndex::new(1),
-                face_index: FaceIndex::new(1),
-                vertex_index: VertexIndex::new(2),
-            }
-        ));
-
-        mesh.add_element(Edge::with_data(
-            EdgeData {
-                twin_index: EdgeIndex::new(1),
-                next_index: EdgeIndex::new(1),
-                prev_index: EdgeIndex::new(2),
-                face_index: FaceIndex::new(1),
-                vertex_index: VertexIndex::new(3),
-            }
-        ));
-
-        unimplemented!()
-
-        //let mut edges_iterated_over = 0;
-
-        //for edge in mesh.edges() {
-        //    assert!(edge.is_valid());
-        //    edges_iterated_over += 1;
-        //}
-
-        //assert_eq!(edges_iterated_over, 3);
-    }
-
-    #[test]
     fn can_iterate_over_edges_of_face() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let v0 = mesh.add_element(Vertex::default());
-        let v1 = mesh.add_element(Vertex::default());
-        let v2 = mesh.add_element(Vertex::default());
 
-        assert_eq!(mesh.vertex_count(), 3);
-        assert_eq!(mesh.edge_count(), 6);
-        assert_eq!(mesh.face_count(), 1);
+        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
 
-        unimplemented!();
+        let v0 = mesh.add_element(Vertex::at_point(p0));
+        let v1 = mesh.add_element(Vertex::at_point(p1));
+        let v2 = mesh.add_element(Vertex::at_point(p2));
+
+        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
+        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
+        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+
+        let f0 = mesh.add_element(Face::default());
+        utils::assign_face_to_loop(&mesh, e0, f0);
+
+        let mut iter_count = 0;
+        for edge in mesh.face(f0).edges() {
+            assert!(iter_count < 3);
+            if edge.index == e0 {
+                iter_count += 1;
+            } else if edge.index == e1 {
+                iter_count += 1;
+            } else if edge.index == e2 {
+                iter_count += 1;
+            } else {
+                unreachable!();
+            }
+        }
+        assert_eq!(iter_count, 3);
     }
 
     #[test]
     fn can_iterate_over_vertices_of_face() {
-        unimplemented!();
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+
+        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
+
+        let v0 = mesh.add_element(Vertex::at_point(p0));
+        let v1 = mesh.add_element(Vertex::at_point(p1));
+        let v2 = mesh.add_element(Vertex::at_point(p2));
+
+        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
+        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
+        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+
+        let f0 = mesh.add_element(Face::default());
+        utils::assign_face_to_loop(&mesh, e0, f0);
+
+        let mut iter_count = 0;
+        for vert in mesh.face(f0).vertices() {
+            assert!(iter_count < 3);
+            if vert.index == v0 {
+                iter_count += 1;
+            } else if vert.index == v1 {
+                iter_count += 1;
+            } else if vert.index == v2 {
+                iter_count += 1;
+            } else {
+                unreachable!();
+            }
+        }
+        assert_eq!(iter_count, 3);
     }
 
     #[test]
     fn can_iterate_edges_around_vertex() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn can_iterate_over_connected_edges() {
         unimplemented!();
     }
 }

@@ -68,6 +68,12 @@ impl<D: ElementData + Default> ElementBuffer<D> {
             .filter(|elem| elem.1.is_active())
     }
 
+    pub fn active_elements(
+        &self
+    ) -> impl Iterator<Item=&MeshElement<D>> {
+        self.buffer.iter().filter(|elem| elem.is_active())
+    }
+
     fn ensure_active_cell(element: &MeshElement<D>) -> Option<&MeshElement<D>> {
         if element.is_active() {
             Some(element)

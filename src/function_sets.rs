@@ -1,6 +1,7 @@
 //! Facades over a mesh and component index to enable fluent adjcency traversals.
 
 use super::*;
+use super::iterators;
 use std::cell::{Ref, RefMut};
 
 pub trait FunctionSet<'mesh, I: ElementIndex + Default, D: ElementData + Default> {
@@ -61,14 +62,13 @@ impl<'mesh> FaceFn<'mesh> {
         EdgeFn::maybe(edge_index, self.mesh)
     }
 
-    // pub fn edges(&self) -> FaceEdges<'mesh> {
-    //     let edge = self.edge();
-    //     FaceEdges::new(self.mesh.next_tag(), edge)
-    // }
+    pub fn edges(&self) -> FaceEdges<'mesh> {
+        FaceEdges::new(self.mesh.next_tag(), *self)
+    }
 
-    // pub fn vertices(&self) -> FaceVertices<'mesh> {
-    //     FaceVertices::new(self.edges())
-    // }
+    pub fn vertices(&self) -> FaceVertices<'mesh> {
+        FaceVertices::new(self.mesh.next_tag(), *self)
+    }
 }
 
 impl<'mesh> IsValid for FaceFn<'mesh> {

@@ -376,6 +376,13 @@ impl Mesh {
         self.kernel.face_buffer.len() - 1
     }
 
+    pub fn faces(&self) -> impl Iterator<Item=FaceFn> {
+        self.kernel.face_buffer.active_cells()
+            .map(move |(offset, _)| {
+                FaceFn::new(FaceIndex::new(offset), self)
+            })
+    }
+
     /// Returns an `EdgeFn` for the given index.
     pub fn edge(&self, index: EdgeIndex) -> EdgeFn {
         EdgeFn::new(index, &self)
@@ -385,6 +392,13 @@ impl Mesh {
         self.kernel.edge_buffer.len() - 1
     }
 
+    pub fn edges(&self) -> impl Iterator<Item=EdgeFn> {
+        self.kernel.edge_buffer.active_cells()
+            .map(move |(offset, _)| {
+                EdgeFn::new(EdgeIndex::new(offset), self)
+            })
+    }
+
     /// Returns a `VertexFn` for the given index.
     pub fn vertex(&self, index: VertexIndex) -> VertexFn {
         VertexFn::new(index, &self)
@@ -392,6 +406,13 @@ impl Mesh {
 
     pub fn vertex_count(&self) -> usize {
         self.kernel.vertex_buffer.len() - 1
+    }
+
+    pub fn vertices(&self) -> impl Iterator<Item=VertexFn> {
+        self.kernel.vertex_buffer.active_cells()
+            .map(move |(offset, _)| {
+                VertexFn::new(VertexIndex::new(offset), self)
+            })
     }
 
     pub fn point_count(&self) -> usize {
@@ -599,5 +620,48 @@ mod tests {
         assert_eq!(mesh.edge(e0).twin().vertex().index, v1);
         assert_eq!(mesh.edge(e1).twin().vertex().index, v2);
         assert_eq!(mesh.edge(e2).twin().vertex().index, v0);
+    }
+
+    #[test]
+    fn can_iterate_over_faces() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+
+        mesh.add_element(Face::new(EdgeIndex::new(1)));
+        mesh.add_element(Face::new(EdgeIndex::new(4)));
+        mesh.add_element(Face::new(EdgeIndex::new(7)));
+
+        assert_eq!(mesh.face_count(), 3);
+
+        let mut faces_iterated_over = 0;
+
+        for face in mesh.faces() {
+            assert!(face.is_valid());
+            faces_iterated_over += 1;
+        }
+
+        assert_eq!(faces_iterated_over, mesh.face_count());
+    }
+
+    #[test]
+    fn can_iterate_over_vertices() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::new();
+
+        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
+        let v = mesh.add_element(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
+        mesh.remove_element(v);
+
+        let mut vertices_iterated_over = 0;
+
+        for vert in mesh.vertices() {
+            assert!(vert.is_valid());
+            assert_ne!(vert.edge().index.offset, 4);
+            vertices_iterated_over += 1;
+        }
+
+        assert_eq!(vertices_iterated_over, mesh.vertex_count());
     }
 }
