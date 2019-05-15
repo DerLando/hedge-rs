@@ -9,6 +9,7 @@ use super::{
     MeshElement, IsValid, IsActive, Storable, Index, ElementStatus, ElementData,
     Face, Edge, Vertex, Point, AddElement, RemoveElement, GetElement,
     EdgeData, FaceData, VertexData, PointData, FaceIndex, VertexIndex,
+    Offset,
 };
 
 /// A pretty simple wrapper over a pair of 'Vec's.
@@ -102,7 +103,7 @@ impl<D: ElementData + Default> ElementBuffer<D> {
         index: &Index<MeshElement<D>>
     ) -> Option<&MeshElement<D>> {
         if index.is_valid() {
-            self.buffer.get(index.offset)
+            self.buffer.get(index.offset as usize)
                 .and_then(ElementBuffer::ensure_active_cell)
                 .and_then(|e| ElementBuffer::ensure_matching_generation(e, index))
         } else {
@@ -112,15 +113,15 @@ impl<D: ElementData + Default> ElementBuffer<D> {
 
     pub fn add(&mut self, element: MeshElement<D>) -> Index<MeshElement<D>> {
         if let Some(index) = self.free_cells.pop() {
-            let cell = &mut self.buffer[index.offset];
+            let cell = &mut self.buffer[index.offset as usize];
             *cell = element;
             cell.status.set(ElementStatus::ACTIVE);
             cell.generation.set(index.generation);
             return index;
         } else {
-            let index = Index::with_generation(self.buffer.len(), element.generation.get());
+            let index = Index::with_generation(self.buffer.len() as u32, element.generation.get());
             self.buffer.push(element);
-            if let Some(element) = self.buffer.get_mut(index.offset) {
+            if let Some(element) = self.buffer.get_mut(index.offset as usize) {
                 element.status.set(ElementStatus::ACTIVE);
             }
             return index;
@@ -147,7 +148,7 @@ impl<D: ElementData + Default> ElementBuffer<D> {
         self.buffer.truncate(active);
     }
 
-    fn next_swap_pair(&self) -> Option<(usize, usize)> {
+    fn next_swap_pair(&self) -> Option<(Offset, Offset)> {
         let inactive_offset = self.enumerate()
             .find(|e| !e.1.is_active())
             .map(|e| e.0);
@@ -169,7 +170,7 @@ impl<D: ElementData + Default> ElementBuffer<D> {
                 // make up the tail of the buffer.
                 None
             } else {
-                Some((inactive_offset, active_offset))
+                Some((inactive_offset as u32, active_offset as u32))
             }
         }
     }
@@ -193,7 +194,7 @@ impl Kernel {
             self.face_buffer
                 .active_cells()
                 .map(|(offset, face)| {
-                    (FaceIndex::with_generation(offset, face.generation.get()), face)
+                    (FaceIndex::with_generation(offset as u32, face.generation.get()), face)
                 })
                 .filter(|(index, face)| {
                     let root_edge_index = face.data.borrow().edge_index;
@@ -210,7 +211,7 @@ impl Kernel {
                     let root_edge_index = face.data.borrow().edge_index;
                     let mut edge_index = root_edge_index;
                     loop {
-                        let edge = &self.edge_buffer.buffer[edge_index.offset];
+                        let edge = &self.edge_buffer.buffer[edge_index.offset as usize];
 
                         let mut data = edge.data.borrow_mut();
                         // prevent an infinite loop for broken meshes
@@ -235,7 +236,7 @@ impl Kernel {
             self.vertex_buffer
                 .active_cells()
                 .map(|(offset, vertex)| {
-                    (VertexIndex::with_generation(offset, vertex.generation.get()), vertex)
+                    (VertexIndex::with_generation(offset as u32, vertex.generation.get()), vertex)
                 })
                 .filter(|(vert_index, vertex)| {
                     let vert_edge_index = vertex.data.borrow().edge_index;
@@ -249,7 +250,7 @@ impl Kernel {
                 .for_each(|(vertex_index, vertex)| {
                     let e0 = {
                         let eindex = vertex.data.borrow().edge_index;
-                        &self.edge_buffer.buffer[eindex.offset]
+                        &self.edge_buffer.buffer[eindex.offset as usize]
                     };
                     e0.data.borrow_mut().vertex_index = vertex_index;
                 });
@@ -271,10 +272,10 @@ impl Kernel {
                     let inactive_offset = offsets.0;
                     let active_offset = offsets.1;
 
-                    self.edge_buffer.buffer.swap(inactive_offset, active_offset);
-                    let swapped = &self.edge_buffer.buffer[inactive_offset];
+                    self.edge_buffer.buffer.swap(inactive_offset as usize, active_offset as usize);
+                    let swapped = &self.edge_buffer.buffer[inactive_offset as usize];
                     let swapped_data = swapped.data();
-                    let swapped_index = Index::with_generation(inactive_offset, swapped.generation.get());
+                    let swapped_index = Index::with_generation(inactive_offset as u32, swapped.generation.get());
 
                     if let Some(next_edge) = self.edge_buffer.get(&swapped_data.next_index) {
                         next_edge.data_mut().prev_index = swapped_index;
@@ -328,10 +329,10 @@ impl Kernel {
                     let inactive_offset = offsets.0;
                     let active_offset = offsets.1;
 
-                    self.point_buffer.buffer.swap(inactive_offset, active_offset);
-                    let swapped = &self.point_buffer.buffer[inactive_offset];
+                    self.point_buffer.buffer.swap(inactive_offset as usize, active_offset as usize);
+                    let swapped = &self.point_buffer.buffer[inactive_offset as usize];
                     let swapped_index = Index::with_generation(
-                        inactive_offset, swapped.generation.get());
+                        inactive_offset as u32, swapped.generation.get());
 
                     self.vertex_buffer.buffer[1..].iter()
                         .filter(|v| v.is_active() && v.data().point_index.offset == active_offset)
@@ -469,21 +470,21 @@ mod tests {
                 ..EdgeData::default()
             }
         ));
-        kernel.edge_buffer.buffer[twin_index.offset].data.borrow_mut().twin_index = e0;
+        kernel.edge_buffer.buffer[twin_index.offset as usize].data.borrow_mut().twin_index = e0;
         e0
     }
 
     fn get_twin(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
-        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().twin_index
+        kernel.edge_buffer.buffer[edge_index.offset as usize].data.borrow().twin_index
     }
 
     fn get_next(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
-        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().next_index
+        kernel.edge_buffer.buffer[edge_index.offset as usize].data.borrow().next_index
     }
 
     #[allow(dead_code)]
     fn get_prev(kernel: &Kernel, edge_index: EdgeIndex) -> EdgeIndex {
-        kernel.edge_buffer.buffer[edge_index.offset].data.borrow().prev_index
+        kernel.edge_buffer.buffer[edge_index.offset as usize].data.borrow().prev_index
     }
 
     fn connect_edges(
@@ -510,7 +511,7 @@ mod tests {
         face.data.borrow_mut().edge_index = root_edge;
         let mut edge_index = root_edge;
         loop {
-            let edge = &kernel.edge_buffer.buffer[edge_index.offset];
+            let edge = &kernel.edge_buffer.buffer[edge_index.offset as usize];
             let mut data = edge.data.borrow_mut();
             if data.face_index == face_index {
                 break;
@@ -551,7 +552,7 @@ mod tests {
         let mut kernel = Kernel::default();
 
         let f0 = make_triangle(&mut kernel);
-        let root_edge = kernel.face_buffer.buffer[f0.offset].data.borrow().edge_index;
+        let root_edge = kernel.face_buffer.buffer[f0.offset as usize].data.borrow().edge_index;
 
         let f1 = make_face(&mut kernel, root_edge);
         let f2 = make_face(&mut kernel, root_edge);
@@ -567,7 +568,7 @@ mod tests {
         assert_eq!(kernel.face_buffer.free_cells.len(), 2);
 
         let root_face_index = kernel.edge_buffer
-            .buffer[root_edge.offset]
+            .buffer[root_edge.offset as usize]
             .data.borrow().face_index;
         assert_eq!(root_face_index, f2);
 
@@ -578,12 +579,12 @@ mod tests {
         assert!(kernel.get_element(&f2).is_none());
 
         let root_face_index = kernel.edge_buffer
-            .buffer[root_edge.offset]
+            .buffer[root_edge.offset as usize]
             .data.borrow().face_index;
         assert_ne!(root_face_index, f2);
         assert!(kernel.get_element(&root_face_index).is_some());
         let face_edge_index = kernel.face_buffer
-            .buffer[root_face_index.offset]
+            .buffer[root_face_index.offset as usize]
             .data.borrow().edge_index;
         assert_eq!(face_edge_index, root_edge);
     }
@@ -687,7 +688,7 @@ mod tests {
         assert_eq!(kernel.active_element_count(), 35);
         assert_eq!(kernel.inactive_element_count(), 3);
 
-        let face0 = &kernel.face_buffer.buffer[f0.offset];
+        let face0 = &kernel.face_buffer.buffer[f0.offset as usize];
         let f0e0 = face0.data.borrow().edge_index;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
@@ -704,7 +705,7 @@ mod tests {
         // we expect the offsets for the edges of f0
         // to be at the head of the edge buffer again
         // and basically reversed.
-        let face0 = &kernel.face_buffer.buffer[f0.offset];
+        let face0 = &kernel.face_buffer.buffer[f0.offset as usize];
         let f0e0 = face0.data.borrow().edge_index;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
@@ -745,18 +746,18 @@ mod tests {
                 ..VertexData::default()
             }));
 
-        assert_eq!(kernel.vertex_buffer.buffer[v0.offset].data().point_index.offset, 2);
-        assert_eq!(kernel.vertex_buffer.buffer[v1.offset].data().point_index.offset, 2);
-        assert_eq!(kernel.vertex_buffer.buffer[v2.offset].data().point_index.offset, 4);
-        assert_eq!(kernel.vertex_buffer.buffer[v3.offset].data().point_index.offset, 4);
+        assert_eq!(kernel.vertex_buffer.buffer[v0.offset as usize].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v1.offset as usize].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v2.offset as usize].data().point_index.offset, 4);
+        assert_eq!(kernel.vertex_buffer.buffer[v3.offset as usize].data().point_index.offset, 4);
 
         kernel.remove_element(p0);
         kernel.remove_element(p2);
         kernel.defrag_points();
 
-        assert_eq!(kernel.vertex_buffer.buffer[v0.offset].data().point_index.offset, 2);
-        assert_eq!(kernel.vertex_buffer.buffer[v1.offset].data().point_index.offset, 2);
-        assert_eq!(kernel.vertex_buffer.buffer[v2.offset].data().point_index.offset, 1);
-        assert_eq!(kernel.vertex_buffer.buffer[v3.offset].data().point_index.offset, 1);
+        assert_eq!(kernel.vertex_buffer.buffer[v0.offset as usize].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v1.offset as usize].data().point_index.offset, 2);
+        assert_eq!(kernel.vertex_buffer.buffer[v2.offset as usize].data().point_index.offset, 1);
+        assert_eq!(kernel.vertex_buffer.buffer[v3.offset as usize].data().point_index.offset, 1);
     }
 }

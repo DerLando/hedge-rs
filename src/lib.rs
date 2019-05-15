@@ -18,9 +18,9 @@ pub mod utils;
 pub mod function_sets;
 pub mod iterators;
 
-pub type Tag = usize;
-pub type Offset = usize;
-pub type Generation = usize;
+pub type Tag = u32;
+pub type Offset = u32;
+pub type Generation = u32;
 pub type Position = [f32; 3];
 pub type Normal = [f32; 3];
 
@@ -155,11 +155,11 @@ impl<D: ElementData + Default> MeshElement<D> {
 }
 
 impl<D: ElementData + Default> Storable for MeshElement<D> {
-    fn generation(&self) -> usize {
+    fn generation(&self) -> Generation {
         self.generation.get()
     }
 
-    fn set_generation(&self, generation: usize) {
+    fn set_generation(&self, generation: Generation) {
         self.generation.set(generation);
     }
 
@@ -173,11 +173,11 @@ impl<D: ElementData + Default> Storable for MeshElement<D> {
 }
 
 impl<D: ElementData + Default> Taggable for MeshElement<D> {
-    fn tag(&self) -> usize {
+    fn tag(&self) -> Tag {
         self.tag.get()
     }
 
-    fn set_tag(&self, tag: usize) {
+    fn set_tag(&self, tag: Tag) {
         self.tag.set(tag);
     }
 }
@@ -339,7 +339,7 @@ pub trait GetElement<E> {
 
 pub struct Mesh {
     kernel: Kernel,
-    tag: atomic::AtomicUsize,
+    tag: atomic::AtomicU32,
 }
 
 impl fmt::Debug for Mesh {
@@ -359,11 +359,11 @@ impl Mesh {
     pub fn new() -> Mesh {
         Mesh {
             kernel: Kernel::default(),
-            tag: atomic::AtomicUsize::new(1),
+            tag: atomic::AtomicU32::new(1),
         }
     }
 
-    fn next_tag(&self) -> usize {
+    fn next_tag(&self) -> Tag {
         self.tag.fetch_add(1, atomic::Ordering::SeqCst)
     }
 
@@ -379,7 +379,7 @@ impl Mesh {
     pub fn faces(&self) -> impl Iterator<Item=FaceFn> {
         self.kernel.face_buffer.active_cells()
             .map(move |(offset, _)| {
-                FaceFn::new(FaceIndex::new(offset), self)
+                FaceFn::new(FaceIndex::new(offset as u32), self)
             })
     }
 
@@ -395,7 +395,7 @@ impl Mesh {
     pub fn edges(&self) -> impl Iterator<Item=EdgeFn> {
         self.kernel.edge_buffer.active_cells()
             .map(move |(offset, _)| {
-                EdgeFn::new(EdgeIndex::new(offset), self)
+                EdgeFn::new(EdgeIndex::new(offset as u32), self)
             })
     }
 
@@ -411,7 +411,7 @@ impl Mesh {
     pub fn vertices(&self) -> impl Iterator<Item=VertexFn> {
         self.kernel.vertex_buffer.active_cells()
             .map(move |(offset, _)| {
-                VertexFn::new(VertexIndex::new(offset), self)
+                VertexFn::new(VertexIndex::new(offset as u32), self)
             })
     }
 
