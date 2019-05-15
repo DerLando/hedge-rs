@@ -1,5 +1,13 @@
 # Hedge Changelog
 
+## 0.1.1
+
+Another major restructure and evaluation of how to approach a "safe" mesh library. Still a bit painful to use but higher level modeling operations will still be added.
+
+The primary reason for stepping back and starting over to some degree was to work on some fundamentals that I sort of ignored in the first approaches. For 0.1.1 this means that I started with the core data layout and kernel and focused on having a more complete foundation.  
+
+As a result, the kernel correctly can "defrag" it's buffers (at least as far as what I've tested). If you end up with a lot of inactive cells after building up a mesh, you can use this to collect memory.
+
 ## 0.0.10
 
 Large internal reorganization. Most operations that modify the mesh are now implemented as a series of trait impls with simple but legible types to describe the operation and provide arguments.
