@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Chip Collier <photex@gmail.com>"]
 description = "An index based half-edge mesh implementation."
 keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
-categories = ["data-structures"]
+categories = ["data-structures", "procedural-modeling", "procgen"]
 license = "MPL-2.0"
 documentation = "https://docs.rs/hedge"
 homepage = "https://github.com/photex/hedge"
@@ -14,8 +14,6 @@ edition = "2018"
 
 [dependencies]
 log = "0.3"
-indexmap = "1.0"
-failure = "0.1"
 
 [dev-dependencies]
 env_logger = "0.6"

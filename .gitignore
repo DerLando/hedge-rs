@@ -9,3 +9,5 @@ CMakeLists.txt
 build/
 cmake-build-*
 *.sublime-workspace
+.cargo/config
+.vs/
