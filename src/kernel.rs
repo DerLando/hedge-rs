@@ -665,9 +665,9 @@ mod tests {
         let _v11 = connect_edges(&mut kernel, e11, e9);
 
         let f0 = make_face(&mut kernel, e0);
-        let f1 = make_face(&mut kernel, e3);
-        let f2 = make_face(&mut kernel, e6);
-        let f3 = make_face(&mut kernel, e9);
+        let _f1 = make_face(&mut kernel, e3);
+        let _f2 = make_face(&mut kernel, e6);
+        let _f3 = make_face(&mut kernel, e9);
 
         assert_eq!(kernel.active_element_count(), 32);
         assert_eq!(kernel.inactive_element_count(), 0);
@@ -675,9 +675,9 @@ mod tests {
         let e12 = make_twin_edge(&mut kernel, e3);
         let e13 = make_twin_edge(&mut kernel, e10);
         let e14 = make_twin_edge(&mut kernel, e7);
-        let v12 = connect_edges(&mut kernel, e12, e13);
-        let v13 = connect_edges(&mut kernel, e13, e14);
-        let v14 = connect_edges(&mut kernel, e14, e12);
+        let _v12 = connect_edges(&mut kernel, e12, e13);
+        let _v13 = connect_edges(&mut kernel, e13, e14);
+        let _v14 = connect_edges(&mut kernel, e14, e12);
 
         set_face_to_loop(&kernel, e12, f0);
         kernel.remove_element(e0);

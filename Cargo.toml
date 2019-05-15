@@ -1,10 +1,10 @@
 [package]
 name = "hedge"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Chip Collier <photex@gmail.com>"]
 description = "An index based half-edge mesh implementation."
 keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
-categories = ["data-structures", "procedural-modeling", "procgen"]
+categories = ["data-structures", "graphics"]
 license = "MPL-2.0"
 documentation = "https://docs.rs/hedge"
 homepage = "https://github.com/photex/hedge"

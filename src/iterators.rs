@@ -1,7 +1,5 @@
 //! Iterators for simple or common mesh traversal patterns.
 
-use std::slice::Iter;
-use std::iter::Enumerate;
 use log::*;
 use super::*;
 
@@ -189,7 +187,7 @@ mod tests {
 
         let e0 = utils::build_full_edge(&mut mesh, v0, v1);
         let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
-        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+        let _e2 = utils::close_edge_loop(&mut mesh, e1, e0);
 
         let f0 = mesh.add_element(Face::default());
         utils::assign_face_to_loop(&mesh, e0, f0);
@@ -225,7 +223,7 @@ mod tests {
         /////////////////////////////////
 
         let v3 = mesh.add_element(Vertex::at_point(points[1]));
-        let v4 = mesh.add_element(Vertex::at_point(points[2]));
+        let _v4 = mesh.add_element(Vertex::at_point(points[2]));
         let v5 = mesh.add_element(Vertex::at_point(points[4]));
 
         let e3 = mesh.edge(e1).twin().index;
@@ -239,7 +237,7 @@ mod tests {
         /////////////////////////////////
 
         let v6 = mesh.add_element(Vertex::at_point(points[2]));
-        let v7 = mesh.add_element(Vertex::at_point(points[3]));
+        let _v7 = mesh.add_element(Vertex::at_point(points[3]));
         let v8 = mesh.add_element(Vertex::at_point(points[4]));
 
         let e6 = mesh.edge(e5).twin().index;
@@ -252,15 +250,15 @@ mod tests {
 
         /////////////////////////////////
 
-        let v9  = mesh.add_element(Vertex::at_point(points[3]));
-        let v10 = mesh.add_element(Vertex::at_point(points[0]));
+        let _v9  = mesh.add_element(Vertex::at_point(points[3]));
+        let _v10 = mesh.add_element(Vertex::at_point(points[0]));
         let v11 = mesh.add_element(Vertex::at_point(points[4]));
 
         let e9 = mesh.edge(e8).twin().index;
         utils::assoc_vert_edge(mesh, v11, e9);
         let e11 = mesh.edge(e2).twin().index;
         utils::assoc_vert_edge(mesh, v0, e11);
-        let e10 = utils::close_edge_loop(mesh, e9, e11);
+        let _e10 = utils::close_edge_loop(mesh, e9, e11);
 
         let f3 = mesh.add_element(Face::default());
         utils::assign_face_to_loop(mesh, e9, f3);
@@ -284,7 +282,7 @@ mod tests {
         let root_vert = build_fan(points, &mut mesh);
 
         let mut iter_count = 0;
-        for edge in mesh.vertex(root_vert).edges() {
+        for _edge in mesh.vertex(root_vert).edges() {
             assert!(iter_count < 4);
             iter_count += 1;
         }
