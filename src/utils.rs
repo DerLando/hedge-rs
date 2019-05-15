@@ -31,6 +31,34 @@ pub fn build_full_edge(
     return e0;
 }
 
+pub fn build_half_edge(
+    mesh: &mut Mesh,
+    twin: EdgeIndex,
+    vert: VertexIndex,
+) -> EdgeIndex {
+    let e0 = mesh.add_element(
+        Edge::with_data(EdgeData {
+            vertex_index: vert,
+            twin_index: twin,
+            ..EdgeData::default()
+        })
+    );
+
+    mesh.get_element(&twin).map(|e| e.data_mut().twin_index = e0);
+    mesh.get_element(&vert).map(|v| v.data_mut().edge_index = e0);
+
+    return e0;
+}
+
+pub fn assoc_vert_edge(
+    mesh: &Mesh,
+    vert: VertexIndex,
+    edge: EdgeIndex
+) {
+    mesh.get_element(&vert).map(|v| v.data_mut().edge_index = edge);
+    mesh.get_element(&edge).map(|e| e.data_mut().vertex_index = vert);
+}
+
 /// Given an edge index, and a vertex index, creates a new edge connected to the specified edge
 pub fn build_full_edge_from(
     mesh: &mut Mesh,

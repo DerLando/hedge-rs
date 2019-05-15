@@ -161,9 +161,13 @@ impl<'mesh> FunctionSet<'mesh, VertexIndex, VertexData> for VertexFn<'mesh> {
 
 impl<'mesh> VertexFn<'mesh> {
     /// Convert this `VertexFn` to an `EdgeFn`
-    pub fn edge(self) -> EdgeFn<'mesh> {
+    pub fn edge(&self) -> EdgeFn<'mesh> {
         let edge_index = self.data().map(|data| data.edge_index);
         EdgeFn::maybe(edge_index, self.mesh)
+    }
+
+    pub fn edges(&self) -> iterators::VertexCirculator {
+        VertexCirculator::new(self.mesh.next_tag(), *self)
     }
 
     pub fn point(&self) -> Option<&'mesh Point> {
