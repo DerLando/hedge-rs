@@ -131,10 +131,14 @@ impl<D: ElementData + Default> ElementBuffer<D> {
     pub fn remove(&mut self, index: Index<MeshElement<D>>) {
         if let Some(cell) = self.get(&index) {
             let removed_index ={
-                let prev_gen = cell.generation.get();
-                cell.generation.set(prev_gen + 1);
-                cell.status.set(ElementStatus::INACTIVE);
-                Index::with_generation(index.offset, cell.generation.get())
+                let next_gen = cell.generation() + 1;
+                if next_gen == u32::max_value() {
+                    cell.set_generation(1);
+                } else {
+                    cell.set_generation(next_gen);
+                }
+                cell.set_status(ElementStatus::INACTIVE);
+                Index::with_generation(index.offset, cell.generation())
             };
             self.free_cells.push(removed_index);
         }
