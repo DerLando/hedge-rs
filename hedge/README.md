@@ -10,5 +10,5 @@ Indexed based [half-edge] mesh implementation.
 Many of the ideas and techniques used in this crate are inspired by [Petgraph] and [OpenMesh].
 
 [half-edge]: https://en.wikipedia.org/wiki/Doubly_connected_edge_list
-[Petgraph]: http://crates.io/crate/petgraph
+[Petgraph]: http://crates.io/crates/petgraph
 [OpenMesh]: http://openmesh.org

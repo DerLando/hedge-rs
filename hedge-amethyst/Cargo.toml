@@ -1,0 +1,19 @@
+[package]
+name = "hedge-amethyst"
+version = "0.0.1"
+authors = ["Chip Collier <photex@gmail.com>"]
+description = "An adapter for using hedge meshes in Amethyst."
+keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
+categories = ["data-structures", "graphics"]
+license = "MPL-2.0"
+documentation = "https://docs.rs/hedge-amethyst"
+homepage = "https://github.com/photex/hedge"
+repository = "https://github.com/photex/hedge"
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+log = "0.4"
+
+[dev-dependencies]
+env_logger = "0.6"
