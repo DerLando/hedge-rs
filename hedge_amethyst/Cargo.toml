@@ -1,6 +1,6 @@
 [package]
 name = "hedge_amethyst"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Chip Collier <photex@gmail.com>"]
 description = "An adapter for using hedge meshes in Amethyst."
 keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
