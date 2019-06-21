@@ -1,5 +1,5 @@
 [package]
-name = "hedge-amethyst"
+name = "hedge_amethyst"
 version = "0.0.1"
 authors = ["Chip Collier <photex@gmail.com>"]
 description = "An adapter for using hedge meshes in Amethyst."
@@ -14,6 +14,17 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
+amethyst_assets = "0.7.0"
+amethyst_core = "0.6.0"
+amethyst_error = "0.1.0"
+amethyst_rendy = "0.1.0"
+err-derive = "0.1"
 
 [dev-dependencies]
 env_logger = "0.6"
+
+[features]
+default = []
+vulkan = ["amethyst_rendy/vulkan"]
+metal = ["amethyst_rendy/metal"]
+empty = ["amethyst_rendy/empty"]

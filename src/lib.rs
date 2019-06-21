@@ -9,6 +9,9 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::marker::PhantomData;
 use std::hash::{Hash, Hasher};
 
+#[cfg(amethyst)]
+pub use hedge_amethyst as amethyst;
+
 pub use crate::kernel::*;
 pub use crate::function_sets::*;
 pub use crate::iterators::*;
