@@ -14,19 +14,19 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-hedge_amethyst = { optional=true, path="hedge_amethyst" }
+hedge-amethyst = { optional=true, path="hedge-amethyst" }
 
 [dev-dependencies]
 env_logger = "0.6"
 
 [features]
 default = []
-amethyst = ["hedge_amethyst"]
-vulkan = ["hedge_amethyst/vulkan"]
-metal = ["hedge_amethyst/metal"]
-empty = ["hedge_amethyst/empty"]
+amethyst = ["hedge-amethyst"]
+vulkan = ["hedge-amethyst/vulkan"]
+metal = ["hedge-amethyst/metal"]
+empty = ["hedge-amethyst/empty"]
 
 [workspace]
 members = [
-    "hedge_amethyst"
+    "hedge-amethyst"
 ]
