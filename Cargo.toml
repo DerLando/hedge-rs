@@ -14,19 +14,19 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-hedge-amethyst = { optional=true, path="hedge-amethyst" }
+amethyst_assets = {optional=true, version="0.7.0"}
+amethyst_core = {optional=true, version="0.6.0"}
+amethyst_error = {optional=true, version="0.1.0"}
+amethyst_rendy = {optional=true, version="0.1.0"}
+err-derive = {optional=true, version="0.1"}
 
 [dev-dependencies]
 env_logger = "0.6"
 
 [features]
 default = []
-amethyst = ["hedge-amethyst"]
-vulkan = ["hedge-amethyst/vulkan"]
-metal = ["hedge-amethyst/metal"]
-empty = ["hedge-amethyst/empty"]
+amethyst = ["amethyst_core", "amethyst_error", "amethyst_assets", "err-derive"]
+vulkan = ["amethyst_rendy/vulkan"]
+metal = ["amethyst_rendy/metal"]
+empty = ["amethyst_rendy/empty"]
 
-[workspace]
-members = [
-    "hedge-amethyst"
-]
