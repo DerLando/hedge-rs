@@ -10,7 +10,7 @@ use crate::iterators::{
 };
 use std::cell::{Ref, RefMut};
 
-pub trait FunctionSet<'mesh, I: ElementHandle + Default, D: ElementData + Default> {
+pub trait ElementProxy<'mesh, I: ElementHandle + Default, D: ElementData + Default> {
     fn new(index: I, mesh: &'mesh Mesh) -> Self;
     fn element(&self) -> Option<&'mesh MeshElement<D>>;
 
@@ -40,7 +40,7 @@ pub struct FaceFn<'mesh> {
     pub index: FaceHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, FaceHandle, FaceData> for FaceFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceFn<'mesh> {
     fn new(index: FaceHandle, mesh: &'mesh Mesh) -> Self {
         FaceFn {
             mesh,
@@ -82,7 +82,7 @@ pub struct EdgeFn<'mesh> {
     pub index: HalfEdgeHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, HalfEdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
     fn new(index: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
         EdgeFn {
             mesh,
@@ -144,7 +144,7 @@ pub struct VertexFn<'mesh> {
     pub index: VertexHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, VertexHandle, VertexData> for VertexFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexFn<'mesh> {
     fn new(index: VertexHandle, mesh: &'mesh Mesh) -> Self {
         VertexFn {
             mesh,
