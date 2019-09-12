@@ -46,18 +46,18 @@ pub struct EdgeData {
     /// The Handle of the Vertex for this edge.
     pub vertex: VertexHandle,
 }
-pub type Edge = MeshElement<EdgeData>;
-pub type EdgeHandle = Handle<Edge>;
+pub type HalfEdge = MeshElement<EdgeData>;
+pub type EdgeHandle = Handle<HalfEdge>;
 impl ElementData for EdgeData {}
 impl ElementHandle for  EdgeHandle {}
-impl Edge {
+impl HalfEdge {
     /// Returns true when this edge has a previous and next edge.
     pub fn is_connected(&self) -> bool {
         let data = self.data();
         data.next.is_valid() && data.prev.is_valid()
     }
 }
-impl IsValid for Edge {
+impl IsValid for HalfEdge {
     /// An Edge is valid when it has a valid twin index, a valid vertex index
     /// and `is_connected`
     fn is_valid(&self) -> bool {
@@ -302,7 +302,7 @@ mod tests {
     fn basic_debug_printing() {
         let _ = env_logger::try_init();
 
-        let edge = Edge::default();
+        let edge = HalfEdge::default();
         debug!("{:?}", edge);
 
         let vertex = Vertex::default();
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn default_edge_is_invalid() {
-        let edge = Edge::default();
+        let edge = HalfEdge::default();
         assert_eq!(edge.is_valid(), false);
     }
 
@@ -409,7 +409,7 @@ mod tests {
     fn can_add_and_remove_edges() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let e0 = mesh.add_element(Edge::default());
+        let e0 = mesh.add_element(HalfEdge::default());
         assert_eq!(mesh.edge_count(), 1);
         assert_eq!(mesh.kernel.edge_buffer.len(), 2);
         mesh.remove_element(e0);

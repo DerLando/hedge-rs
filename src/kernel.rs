@@ -7,7 +7,7 @@ use log::*;
 
 use super::{
     MeshElement, IsValid, IsActive, Storable, Handle, ElementStatus, ElementData,
-    Face, Edge, Vertex, Point, AddElement, RemoveElement, GetElement,
+    Face, HalfEdge, Vertex, Point, AddElement, RemoveElement, GetElement,
     EdgeData, FaceData, VertexData, PointData, FaceHandle, VertexHandle,
     Offset,
 };
@@ -388,8 +388,8 @@ impl GetElement<Vertex> for Kernel {
     }
 }
 
-impl GetElement<Edge> for Kernel {
-    fn get_element(&self, index: &Handle<Edge>) -> Option<&Edge> {
+impl GetElement<HalfEdge> for Kernel {
+    fn get_element(&self, index: &Handle<HalfEdge>) -> Option<&HalfEdge> {
         self.edge_buffer.get(index)
     }
 }
@@ -412,8 +412,8 @@ impl AddElement<Vertex> for Kernel {
     }
 }
 
-impl AddElement<Edge> for Kernel {
-    fn add_element(&mut self, element: Edge) -> Handle<Edge> {
+impl AddElement<HalfEdge> for Kernel {
+    fn add_element(&mut self, element: HalfEdge) -> Handle<HalfEdge> {
         self.edge_buffer.add(element)
     }
 }
@@ -436,8 +436,8 @@ impl RemoveElement<Vertex> for Kernel {
     }
 }
 
-impl RemoveElement<Edge> for Kernel {
-    fn remove_element(&mut self, index: Handle<Edge>) {
+impl RemoveElement<HalfEdge> for Kernel {
+    fn remove_element(&mut self, index: Handle<HalfEdge>) {
         self.edge_buffer.remove(index)
     }
 }
@@ -454,8 +454,8 @@ mod tests {
     use crate::EdgeHandle;
 
     fn new_edge(kernel: &mut Kernel) -> EdgeHandle {
-        let e0 = kernel.add_element(Edge::default());
-        let e1 = kernel.add_element(Edge::default());
+        let e0 = kernel.add_element(HalfEdge::default());
+        let e1 = kernel.add_element(HalfEdge::default());
         match (kernel.get_element(&e0),
                kernel.get_element(&e1)) {
             (Some(edge0), Some(edge1)) => {
@@ -468,7 +468,7 @@ mod tests {
     }
 
     fn make_twin_edge(kernel: &mut Kernel, twin_index: EdgeHandle) -> EdgeHandle {
-        let e0 = kernel.add_element(Edge::with_data(
+        let e0 = kernel.add_element(HalfEdge::with_data(
             EdgeData {
                 adjacent: twin_index,
                 ..EdgeData::default()

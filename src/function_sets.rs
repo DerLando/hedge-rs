@@ -92,7 +92,7 @@ impl<'mesh> FunctionSet<'mesh, EdgeHandle, EdgeData> for EdgeFn<'mesh> {
         }
     }
 
-    fn element(&self) -> Option<&'mesh Edge> {
+    fn element(&self) -> Option<&'mesh HalfEdge> {
         self.mesh.get_element(&self.index)
     }
 }
