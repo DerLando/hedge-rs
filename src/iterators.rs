@@ -74,7 +74,7 @@ impl<'mesh> FaceEdges<'mesh> {
     pub fn new(tag: Tag, face: FaceProxy<'mesh>) -> Self {
         FaceEdges {
             tag,
-            root_edge: face.edge(),
+            root_edge: face.root_edge(),
             last_edge: None
         }
     }
@@ -117,7 +117,7 @@ impl<'mesh> FaceVertices<'mesh> {
     pub fn new(tag: Tag, face: FaceProxy<'mesh>) -> Self {
         let inner_iter = FaceEdges {
             tag,
-            root_edge: face.edge(),
+            root_edge: face.root_edge(),
             last_edge: None
         };
         FaceVertices { inner_iter }

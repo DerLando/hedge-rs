@@ -54,8 +54,8 @@ impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceProxy<'mesh> {
 }
 
 impl<'mesh> FaceProxy<'mesh> {
-    pub fn edge(&self) -> HalfEdgeProxy<'mesh> {
-        let edge_index = self.data().map(|data| data.edge);
+    pub fn root_edge(&self) -> HalfEdgeProxy<'mesh> {
+        let edge_index = self.data().map(|data| data.root_edge);
         HalfEdgeProxy::maybe(edge_index, self.mesh)
     }
 

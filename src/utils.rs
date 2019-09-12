@@ -107,12 +107,12 @@ pub fn assign_face_to_loop(
 ) {
     let face = mesh.face(face_index);
     if let Some(mut data) = face.data_mut() {
-        data.edge = root_edge_index;
+        data.root_edge = root_edge_index;
     } else {
         error!("Invalid face index specified: {:?}", face_index);
         return;
     }
-    let mut edge = face.edge();
+    let mut edge = face.root_edge();
     loop {
         if let Some(mut data) = edge.data_mut() {
             if data.face == face.index {

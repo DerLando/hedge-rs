@@ -160,22 +160,22 @@ impl IsValid for Vertex {
 #[derive(Debug, Clone, Default)]
 pub struct FaceData {
     /// The "root" of an edge loop that defines this face.
-    pub edge: HalfEdgeHandle,
+    pub root_edge: HalfEdgeHandle,
 }
 pub type Face = MeshElement<FaceData>;
 pub type FaceHandle = Handle<Face>;
 impl ElementData for FaceData {}
 impl ElementHandle for FaceHandle {}
 impl Face {
-    pub fn new(edge: HalfEdgeHandle) -> Self {
-        Face::with_data(FaceData { edge })
+    pub fn new(root_edge: HalfEdgeHandle) -> Self {
+        Face::with_data(FaceData { root_edge })
     }
 }
 impl IsValid for Face {
     /// A face is considered "valid" as long as it has an edge index
     /// other than `INVALID_COMPONENT_INDEX`
     fn is_valid(&self) -> bool {
-        self.is_active() && self.data().edge.is_valid()
+        self.is_active() && self.data().root_edge.is_valid()
     }
 }
 

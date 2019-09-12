@@ -201,7 +201,7 @@ impl Kernel {
                     (FaceHandle::with_generation(offset as u32, face.generation()), face)
                 })
                 .filter(|(index, face)| {
-                    let root_edge_index = face.data().edge;
+                    let root_edge_index = face.data().root_edge;
                     if let Some(root_edge) = self.edge_buffer.get(&root_edge_index) {
                         let root_face_index = root_edge.data().face;
                         *index != root_face_index
@@ -212,7 +212,7 @@ impl Kernel {
                     }
                 })
                 .for_each(|(face_index, face)| {
-                    let root_edge_index = face.data().edge;
+                    let root_edge_index = face.data().root_edge;
                     let mut edge_index = root_edge_index;
                     loop {
                         let edge = &self.edge_buffer.buffer[edge_index.offset as usize];
@@ -299,8 +299,8 @@ impl Kernel {
 
                     if let Some(face) = self.face_buffer.get(&swapped_data.face) {
                         let mut face_data = face.data_mut();
-                        if face_data.edge.offset == active_offset {
-                            face_data.edge = swapped_index;
+                        if face_data.root_edge.offset == active_offset {
+                            face_data.root_edge = swapped_index;
                         }
                     }
                     if let Some(vertex) = self.vertex_buffer.get(&swapped_data.vertex) {
@@ -512,7 +512,7 @@ mod tests {
 
     fn set_face_to_loop(kernel: &Kernel, root_edge: HalfEdgeHandle, face_index: FaceHandle) {
         let face = kernel.face_buffer.get(&face_index).unwrap();
-        face.data_mut().edge = root_edge;
+        face.data_mut().root_edge = root_edge;
         let mut edge_index = root_edge;
         loop {
             let edge = &kernel.edge_buffer.buffer[edge_index.offset as usize];
@@ -531,7 +531,7 @@ mod tests {
     fn make_face(kernel: &mut Kernel, root_edge: HalfEdgeHandle) -> FaceHandle {
         let face_index = kernel.add_element(
             Face::with_data(FaceData {
-                edge: root_edge
+                root_edge: root_edge
             })
         );
         set_face_to_loop(kernel, root_edge, face_index);
@@ -556,7 +556,7 @@ mod tests {
         let mut kernel = Kernel::default();
 
         let f0 = make_triangle(&mut kernel);
-        let root_edge = kernel.face_buffer.buffer[f0.offset as usize].data().edge;
+        let root_edge = kernel.face_buffer.buffer[f0.offset as usize].data().root_edge;
 
         let f1 = make_face(&mut kernel, root_edge);
         let f2 = make_face(&mut kernel, root_edge);
@@ -589,7 +589,7 @@ mod tests {
         assert!(kernel.get_element(&root_face_index).is_some());
         let face_edge_index = kernel.face_buffer
             .buffer[root_face_index.offset as usize]
-            .data().edge;
+            .data().root_edge;
         assert_eq!(face_edge_index, root_edge);
     }
 
@@ -693,7 +693,7 @@ mod tests {
         assert_eq!(kernel.inactive_element_count(), 3);
 
         let face0 = &kernel.face_buffer.buffer[f0.offset as usize];
-        let f0e0 = face0.data().edge;
+        let f0e0 = face0.data().root_edge;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
         assert_eq!(f0e0, get_next(&kernel, f0e2));
@@ -710,7 +710,7 @@ mod tests {
         // to be at the head of the edge buffer again
         // and basically reversed.
         let face0 = &kernel.face_buffer.buffer[f0.offset as usize];
-        let f0e0 = face0.data().edge;
+        let f0e0 = face0.data().root_edge;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
         assert_eq!(f0e0, get_next(&kernel, f0e2));
