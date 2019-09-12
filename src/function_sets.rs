@@ -81,11 +81,11 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct EdgeFn<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: EdgeHandle,
+    pub index: HalfEdgeHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, EdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
-    fn new(index: EdgeHandle, mesh: &'mesh Mesh) -> Self {
+impl<'mesh> FunctionSet<'mesh, HalfEdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
+    fn new(index: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
         EdgeFn {
             mesh,
             index,

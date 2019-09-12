@@ -6,7 +6,7 @@ pub fn build_full_edge(
     mesh: &mut Mesh,
     v0: VertexHandle,
     v1: VertexHandle
-) -> EdgeHandle {
+) -> HalfEdgeHandle {
     let e0 = mesh.add_element(
         HalfEdge::with_data(HalfEdgeData {
             vertex: v0,
@@ -29,9 +29,9 @@ pub fn build_full_edge(
 
 pub fn build_half_edge(
     mesh: &mut Mesh,
-    adjacent: EdgeHandle,
+    adjacent: HalfEdgeHandle,
     vertex: VertexHandle,
-) -> EdgeHandle {
+) -> HalfEdgeHandle {
     let e0 = mesh.add_element(
         HalfEdge::with_data(HalfEdgeData {
             vertex,
@@ -49,7 +49,7 @@ pub fn build_half_edge(
 pub fn assoc_vert_edge(
     mesh: &Mesh,
     vert: VertexHandle,
-    edge: EdgeHandle
+    edge: HalfEdgeHandle
 ) {
     mesh.get_element(&vert).map(|v| v.data_mut().edge = edge);
     mesh.get_element(&edge).map(|e| e.data_mut().vertex = vert);
@@ -58,9 +58,9 @@ pub fn assoc_vert_edge(
 /// Given an edge index, and a vertex index, creates a new edge connected to the specified edge
 pub fn build_full_edge_from(
     mesh: &mut Mesh,
-    prev: EdgeHandle,
+    prev: HalfEdgeHandle,
     v1: VertexHandle
-) -> EdgeHandle {
+) -> HalfEdgeHandle {
     let e0 = {
         let v0 = mesh.edge(prev).twin().vertex().index;
         build_full_edge(mesh, v0, v1)
@@ -71,9 +71,9 @@ pub fn build_full_edge_from(
 
 pub fn close_edge_loop(
     mesh: &mut Mesh,
-    prev: EdgeHandle,
-    next: EdgeHandle
-) -> EdgeHandle {
+    prev: HalfEdgeHandle,
+    next: HalfEdgeHandle
+) -> HalfEdgeHandle {
     let v0 = mesh.edge(prev).twin().element().map(|e| e.data().vertex);
     let v1 = mesh.edge(next).element().map(|e| e.data().vertex);
 
@@ -84,15 +84,15 @@ pub fn close_edge_loop(
         e0
     } else {
         error!("Failed to properly discover associated vertices.");
-        EdgeHandle::default()
+        HalfEdgeHandle::default()
     }
 }
 
 /// Associates a previous and next edge
 pub fn connect_edges(
     mesh: &mut Mesh,
-    prev: EdgeHandle,
-    next: EdgeHandle
+    prev: HalfEdgeHandle,
+    next: HalfEdgeHandle
 ) {
     mesh.get_element(&prev).map(|e| e.data_mut().next = next);
     mesh.get_element(&next).map(|e| e.data_mut().prev = prev);
@@ -100,7 +100,7 @@ pub fn connect_edges(
 
 pub fn assign_face_to_loop(
     mesh: &Mesh,
-    root_edge_index: EdgeHandle,
+    root_edge_index: HalfEdgeHandle,
     face_index: FaceHandle
 ) {
     let face = mesh.face(face_index);

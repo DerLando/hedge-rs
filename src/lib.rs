@@ -36,20 +36,20 @@ pub trait IsValid {
 #[derive(Debug, Clone, Default)]
 pub struct HalfEdgeData {
     /// The adjacent half-edge
-    pub adjacent: EdgeHandle,
+    pub adjacent: HalfEdgeHandle,
     /// The Handle of the next edge in the loop
-    pub next: EdgeHandle,
+    pub next: HalfEdgeHandle,
     /// The Handle of the previous edge in the loop
-    pub prev: EdgeHandle,
+    pub prev: HalfEdgeHandle,
     /// The Handle of the face this edge loop defines
     pub face: FaceHandle,
     /// The Handle of the Vertex for this edge.
     pub vertex: VertexHandle,
 }
 pub type HalfEdge = MeshElement<HalfEdgeData>;
-pub type EdgeHandle = Handle<HalfEdge>;
+pub type HalfEdgeHandle = Handle<HalfEdge>;
 impl ElementData for HalfEdgeData {}
-impl ElementHandle for  EdgeHandle {}
+impl ElementHandle for HalfEdgeHandle {}
 impl HalfEdge {
     /// Returns true when this edge has a previous and next edge.
     pub fn is_connected(&self) -> bool {
@@ -74,7 +74,7 @@ impl IsValid for HalfEdge {
 #[derive(Debug, Clone, Default)]
 pub struct VertexData {
     /// Index of the outgoing edge
-    pub edge: EdgeHandle,
+    pub edge: HalfEdgeHandle,
     /// Index of point this vertex belongs to
     pub point: PointHandle,
 }
@@ -83,11 +83,11 @@ pub type VertexHandle = Handle<Vertex>;
 impl ElementData for VertexData {}
 impl ElementHandle for VertexHandle {}
 impl Vertex {
-    pub fn new(edge: EdgeHandle, point: PointHandle) -> Self {
+    pub fn new(edge: HalfEdgeHandle, point: PointHandle) -> Self {
         Vertex::with_data(VertexData { edge, point })
     }
 
-    pub fn for_edge(edge: EdgeHandle) -> Self {
+    pub fn for_edge(edge: HalfEdgeHandle) -> Self {
         Vertex::with_data(VertexData {
             edge,
             ..VertexData::default()
@@ -112,14 +112,14 @@ impl IsValid for Vertex {
 #[derive(Debug, Clone, Default)]
 pub struct FaceData {
     /// The "root" of an edge loop that defines this face.
-    pub edge: EdgeHandle,
+    pub edge: HalfEdgeHandle,
 }
 pub type Face = MeshElement<FaceData>;
 pub type FaceHandle = Handle<Face>;
 impl ElementData for FaceData {}
 impl ElementHandle for FaceHandle {}
 impl Face {
-    pub fn new(edge: EdgeHandle) -> Self {
+    pub fn new(edge: HalfEdgeHandle) -> Self {
         Face::with_data(FaceData { edge })
     }
 }
@@ -239,7 +239,7 @@ impl Mesh {
     }
 
     /// Returns an `EdgeFn` for the given index.
-    pub fn edge(&self, index: EdgeHandle) -> EdgeFn {
+    pub fn edge(&self, index: HalfEdgeHandle) -> EdgeFn {
         EdgeFn::new(index, &self)
     }
 
@@ -250,7 +250,7 @@ impl Mesh {
     pub fn edges(&self) -> impl Iterator<Item=EdgeFn> {
         self.kernel.edge_buffer.active_cells()
             .map(move |(offset, _)| {
-                EdgeFn::new(EdgeHandle::new(offset as u32), self)
+                EdgeFn::new(HalfEdgeHandle::new(offset as u32), self)
             })
     }
 
@@ -320,10 +320,10 @@ mod tests {
 
     #[test]
     fn index_types_are_invalid_by_default() {
-        let vert = EdgeHandle::default();
+        let vert = HalfEdgeHandle::default();
         assert!(!vert.is_valid());
 
-        let edge = EdgeHandle::default();
+        let edge = HalfEdgeHandle::default();
         assert!(!edge.is_valid());
 
         let point = PointHandle::default();
@@ -377,7 +377,7 @@ mod tests {
         let mesh = Mesh::new();
 
         assert_eq!(mesh.edge_count(), 0);
-        assert_eq!(mesh.get_element(&EdgeHandle::new(0)).is_some(), false);
+        assert_eq!(mesh.get_element(&HalfEdgeHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.edge_buffer.len(), 1);
 
         assert_eq!(mesh.face_count(), 0);
@@ -482,9 +482,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Face::new(EdgeHandle::new(1)));
-        mesh.add_element(Face::new(EdgeHandle::new(4)));
-        mesh.add_element(Face::new(EdgeHandle::new(7)));
+        mesh.add_element(Face::new(HalfEdgeHandle::new(1)));
+        mesh.add_element(Face::new(HalfEdgeHandle::new(4)));
+        mesh.add_element(Face::new(HalfEdgeHandle::new(7)));
 
         assert_eq!(mesh.face_count(), 3);
 
@@ -503,10 +503,10 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
-        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
-        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
-        let v = mesh.add_element(Vertex::new(EdgeHandle::new(4), PointHandle::new(1)));
+        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        let v = mesh.add_element(Vertex::new(HalfEdgeHandle::new(4), PointHandle::new(1)));
         mesh.remove_element(v);
 
         let mut vertices_iterated_over = 0;

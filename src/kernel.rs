@@ -451,9 +451,9 @@ impl RemoveElement<Face> for Kernel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::EdgeHandle;
+    use crate::HalfEdgeHandle;
 
-    fn new_edge(kernel: &mut Kernel) -> EdgeHandle {
+    fn new_edge(kernel: &mut Kernel) -> HalfEdgeHandle {
         let e0 = kernel.add_element(HalfEdge::default());
         let e1 = kernel.add_element(HalfEdge::default());
         match (kernel.get_element(&e0),
@@ -467,7 +467,7 @@ mod tests {
         e0
     }
 
-    fn make_twin_edge(kernel: &mut Kernel, twin_index: EdgeHandle) -> EdgeHandle {
+    fn make_twin_edge(kernel: &mut Kernel, twin_index: HalfEdgeHandle) -> HalfEdgeHandle {
         let e0 = kernel.add_element(HalfEdge::with_data(
             HalfEdgeData {
                 adjacent: twin_index,
@@ -478,23 +478,23 @@ mod tests {
         e0
     }
 
-    fn get_twin(kernel: &Kernel, edge_index: EdgeHandle) -> EdgeHandle {
+    fn get_twin(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
         kernel.edge_buffer.buffer[edge_index.offset as usize].data().adjacent
     }
 
-    fn get_next(kernel: &Kernel, edge_index: EdgeHandle) -> EdgeHandle {
+    fn get_next(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
         kernel.edge_buffer.buffer[edge_index.offset as usize].data().next
     }
 
     #[allow(dead_code)]
-    fn get_prev(kernel: &Kernel, edge_index: EdgeHandle) -> EdgeHandle {
+    fn get_prev(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
         kernel.edge_buffer.buffer[edge_index.offset as usize].data().prev
     }
 
     fn connect_edges(
         kernel: &mut Kernel,
-        prev_handle: EdgeHandle,
-        next_handle: EdgeHandle
+        prev_handle: HalfEdgeHandle,
+        next_handle: HalfEdgeHandle
     ) -> VertexHandle {
         let v0 = kernel.add_element(Vertex::default());
         match (kernel.get_element(&prev_handle),
@@ -510,7 +510,7 @@ mod tests {
         v0
     }
 
-    fn set_face_to_loop(kernel: &Kernel, root_edge: EdgeHandle, face_index: FaceHandle) {
+    fn set_face_to_loop(kernel: &Kernel, root_edge: HalfEdgeHandle, face_index: FaceHandle) {
         let face = kernel.face_buffer.get(&face_index).unwrap();
         face.data_mut().edge = root_edge;
         let mut edge_index = root_edge;
@@ -528,7 +528,7 @@ mod tests {
         }
     }
 
-    fn make_face(kernel: &mut Kernel, root_edge: EdgeHandle) -> FaceHandle {
+    fn make_face(kernel: &mut Kernel, root_edge: HalfEdgeHandle) -> FaceHandle {
         let face_index = kernel.add_element(
             Face::with_data(FaceData {
                 edge: root_edge
