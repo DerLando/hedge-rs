@@ -40,50 +40,50 @@ impl Mesh {
     }
 
     /// Returns a `FaceFn` for the given index.
-    pub fn face(&self, index: FaceHandle) -> FaceFn {
-        FaceFn::new(index, &self)
+    pub fn face(&self, index: FaceHandle) -> FaceProxy {
+        FaceProxy::new(index, &self)
     }
 
     pub fn face_count(&self) -> usize {
         self.kernel.face_buffer.len() - 1
     }
 
-    pub fn faces(&self) -> impl Iterator<Item=FaceFn> {
+    pub fn faces(&self) -> impl Iterator<Item=FaceProxy> {
         self.kernel.face_buffer.active_cells()
             .map(move |(offset, _)| {
-                FaceFn::new(FaceHandle::new(offset as u32), self)
+                FaceProxy::new(FaceHandle::new(offset as u32), self)
             })
     }
 
     /// Returns an `EdgeFn` for the given index.
-    pub fn edge(&self, index: HalfEdgeHandle) -> EdgeFn {
-        EdgeFn::new(index, &self)
+    pub fn edge(&self, index: HalfEdgeHandle) -> HalfEdgeProxy {
+        HalfEdgeProxy::new(index, &self)
     }
 
     pub fn edge_count(&self) -> usize {
         self.kernel.edge_buffer.len() - 1
     }
 
-    pub fn edges(&self) -> impl Iterator<Item=EdgeFn> {
+    pub fn edges(&self) -> impl Iterator<Item=HalfEdgeProxy> {
         self.kernel.edge_buffer.active_cells()
             .map(move |(offset, _)| {
-                EdgeFn::new(HalfEdgeHandle::new(offset as u32), self)
+                HalfEdgeProxy::new(HalfEdgeHandle::new(offset as u32), self)
             })
     }
 
     /// Returns a `VertexFn` for the given index.
-    pub fn vertex(&self, index: VertexHandle) -> VertexFn {
-        VertexFn::new(index, &self)
+    pub fn vertex(&self, index: VertexHandle) -> VertexProxy {
+        VertexProxy::new(index, &self)
     }
 
     pub fn vertex_count(&self) -> usize {
         self.kernel.vertex_buffer.len() - 1
     }
 
-    pub fn vertices(&self) -> impl Iterator<Item=VertexFn> {
+    pub fn vertices(&self) -> impl Iterator<Item=VertexProxy> {
         self.kernel.vertex_buffer.active_cells()
             .map(move |(offset, _)| {
-                VertexFn::new(VertexHandle::new(offset as u32), self)
+                VertexProxy::new(VertexHandle::new(offset as u32), self)
             })
     }
 

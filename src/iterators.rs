@@ -6,13 +6,13 @@ use super::*;
 
 pub struct VertexCirculator<'mesh> {
     tag: Tag,
-    vert: VertexFn<'mesh>,
-    last_edge: Option<EdgeFn<'mesh>>,
+    vert: VertexProxy<'mesh>,
+    last_edge: Option<HalfEdgeProxy<'mesh>>,
     central_point: PointHandle,
 }
 
 impl<'mesh> VertexCirculator<'mesh> {
-    pub fn new(tag: Tag, vert: VertexFn<'mesh>) -> Self {
+    pub fn new(tag: Tag, vert: VertexProxy<'mesh>) -> Self {
         VertexCirculator {
             tag,
             vert,
@@ -25,7 +25,7 @@ impl<'mesh> VertexCirculator<'mesh> {
 }
 
 impl<'mesh> Iterator for VertexCirculator<'mesh> {
-    type Item = EdgeFn<'mesh>;
+    type Item = HalfEdgeProxy<'mesh>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.last_edge = if let Some(last_edge) = self.last_edge {
@@ -66,12 +66,12 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
 
 pub struct FaceEdges<'mesh> {
     tag: Tag,
-    root_edge: EdgeFn<'mesh>,
-    last_edge: Option<EdgeFn<'mesh>>,
+    root_edge: HalfEdgeProxy<'mesh>,
+    last_edge: Option<HalfEdgeProxy<'mesh>>,
 }
 
 impl<'mesh> FaceEdges<'mesh> {
-    pub fn new(tag: Tag, face: FaceFn<'mesh>) -> Self {
+    pub fn new(tag: Tag, face: FaceProxy<'mesh>) -> Self {
         FaceEdges {
             tag,
             root_edge: face.edge(),
@@ -81,7 +81,7 @@ impl<'mesh> FaceEdges<'mesh> {
 }
 
 impl<'mesh> Iterator for FaceEdges<'mesh> {
-    type Item = EdgeFn<'mesh>;
+    type Item = HalfEdgeProxy<'mesh>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.last_edge = if let Some(last_edge) = self.last_edge {
@@ -114,7 +114,7 @@ pub struct FaceVertices<'mesh> {
 }
 
 impl<'mesh> FaceVertices<'mesh> {
-    pub fn new(tag: Tag, face: FaceFn<'mesh>) -> Self {
+    pub fn new(tag: Tag, face: FaceProxy<'mesh>) -> Self {
         let inner_iter = FaceEdges {
             tag,
             root_edge: face.edge(),
@@ -125,7 +125,7 @@ impl<'mesh> FaceVertices<'mesh> {
 }
 
 impl<'mesh> Iterator for FaceVertices<'mesh> {
-    type Item = VertexFn<'mesh>;
+    type Item = VertexProxy<'mesh>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner_iter.next().map(|edge| edge.vertex())

@@ -35,14 +35,14 @@ pub trait ElementProxy<'mesh, I: ElementHandle + Default, D: ElementData + Defau
 
 /// Function set for operations related to the Face struct
 #[derive(Debug, Copy, Clone)]
-pub struct FaceFn<'mesh> {
+pub struct FaceProxy<'mesh> {
     mesh: &'mesh Mesh,
     pub index: FaceHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceProxy<'mesh> {
     fn new(index: FaceHandle, mesh: &'mesh Mesh) -> Self {
-        FaceFn {
+        FaceProxy {
             mesh,
             index,
         }
@@ -53,11 +53,10 @@ impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceFn<'mesh> {
     }
 }
 
-impl<'mesh> FaceFn<'mesh> {
-    /// Convert this `FaceFn` to an `EdgeFn`.
-    pub fn edge(&self) -> EdgeFn<'mesh> {
+impl<'mesh> FaceProxy<'mesh> {
+    pub fn edge(&self) -> HalfEdgeProxy<'mesh> {
         let edge_index = self.data().map(|data| data.edge);
-        EdgeFn::maybe(edge_index, self.mesh)
+        HalfEdgeProxy::maybe(edge_index, self.mesh)
     }
 
     pub fn edges(&self) -> FaceEdges<'mesh> {
@@ -69,7 +68,7 @@ impl<'mesh> FaceFn<'mesh> {
     }
 }
 
-impl<'mesh> IsValid for FaceFn<'mesh> {
+impl<'mesh> IsValid for FaceProxy<'mesh> {
     fn is_valid(&self) -> bool {
         self.element().is_some()
     }
@@ -77,14 +76,14 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
 
 /// Function set for operations related to the Edge struct
 #[derive(Debug, Copy, Clone)]
-pub struct EdgeFn<'mesh> {
+pub struct HalfEdgeProxy<'mesh> {
     mesh: &'mesh Mesh,
     pub index: HalfEdgeHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for HalfEdgeProxy<'mesh> {
     fn new(index: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
-        EdgeFn {
+        HalfEdgeProxy {
             mesh,
             index,
         }
@@ -95,43 +94,38 @@ impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for EdgeFn<'mesh> 
     }
 }
 
-impl<'mesh> EdgeFn<'mesh> {
+impl<'mesh> HalfEdgeProxy<'mesh> {
     pub fn is_boundary(&self) -> bool {
         !self.face().is_valid() || !self.twin().face().is_valid()
     }
 
-    /// Convert this `EdgeFn` to an `EdgeFn` of it's next edge
-    pub fn next(&self) -> EdgeFn<'mesh> {
+    pub fn next(&self) -> HalfEdgeProxy<'mesh> {
         let next_index = self.data().map(|data| data.next);
-        EdgeFn::maybe(next_index, self.mesh)
+        HalfEdgeProxy::maybe(next_index, self.mesh)
     }
 
-    /// Convert this `EdgeFn` to an `EdgeFn` of it's prev edge
-    pub fn prev(&self) -> EdgeFn<'mesh> {
+    pub fn prev(&self) -> HalfEdgeProxy<'mesh> {
         let prev_index = self.data().map(|data| data.prev);
-        EdgeFn::maybe(prev_index, self.mesh)
+        HalfEdgeProxy::maybe(prev_index, self.mesh)
     }
 
-    /// Convert this `EdgeFn` to an `EdgeFn` of it's twin edge
-    pub fn twin(&self) -> EdgeFn<'mesh> {
+    pub fn twin(&self) -> HalfEdgeProxy<'mesh> {
         let twin_index = self.data().map(|data| data.adjacent);
-        EdgeFn::maybe(twin_index, self.mesh)
+        HalfEdgeProxy::maybe(twin_index, self.mesh)
     }
 
-    /// Convert this `EdgeFn` to an `FaceFn`
-    pub fn face(&self) -> FaceFn<'mesh> {
+    pub fn face(&self) -> FaceProxy<'mesh> {
         let face_index = self.data().map(|data| data.face);
-        FaceFn::maybe(face_index, self.mesh)
+        FaceProxy::maybe(face_index, self.mesh)
     }
 
-    /// Convert this `EdgeFn` to an `VertexFn`
-    pub fn vertex(&self) -> VertexFn<'mesh> {
+    pub fn vertex(&self) -> VertexProxy<'mesh> {
         let vertex_index = self.data().map(|data| data.vertex);
-        VertexFn::maybe(vertex_index, self.mesh)
+        VertexProxy::maybe(vertex_index, self.mesh)
     }
 }
 
-impl<'mesh> IsValid for EdgeFn<'mesh> {
+impl<'mesh> IsValid for HalfEdgeProxy<'mesh> {
     fn is_valid(&self) -> bool {
         self.element().is_some()
     }
@@ -139,14 +133,14 @@ impl<'mesh> IsValid for EdgeFn<'mesh> {
 
 /// Function set for operations related to the Vertex struct
 #[derive(Debug, Copy, Clone)]
-pub struct VertexFn<'mesh> {
+pub struct VertexProxy<'mesh> {
     mesh: &'mesh Mesh,
     pub index: VertexHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexFn<'mesh> {
+impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexProxy<'mesh> {
     fn new(index: VertexHandle, mesh: &'mesh Mesh) -> Self {
-        VertexFn {
+        VertexProxy {
             mesh,
             index,
         }
@@ -157,11 +151,10 @@ impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexFn<'mesh> {
     }
 }
 
-impl<'mesh> VertexFn<'mesh> {
-    /// Convert this `VertexFn` to an `EdgeFn`
-    pub fn edge(&self) -> EdgeFn<'mesh> {
+impl<'mesh> VertexProxy<'mesh> {
+    pub fn edge(&self) -> HalfEdgeProxy<'mesh> {
         let edge_index = self.data().map(|data| data.edge);
-        EdgeFn::maybe(edge_index, self.mesh)
+        HalfEdgeProxy::maybe(edge_index, self.mesh)
     }
 
     pub fn edges(&self) -> VertexCirculator {
@@ -175,7 +168,7 @@ impl<'mesh> VertexFn<'mesh> {
     }
 }
 
-impl<'mesh> IsValid for VertexFn<'mesh> {
+impl<'mesh> IsValid for VertexProxy<'mesh> {
     fn is_valid(&self) -> bool {
         self.element().is_some()
     }
