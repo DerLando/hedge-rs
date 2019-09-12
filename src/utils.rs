@@ -4,67 +4,63 @@ use super::*;
 /// Given two vertex indices, create an adjacent edge pair
 pub fn build_full_edge(
     mesh: &mut Mesh,
-    v0: VertexIndex,
-    v1: VertexIndex
-) -> EdgeIndex {
-    let e0 = mesh.add_element(Edge {
-        data: RefCell::new(EdgeData {
-            vertex_index: v0,
+    v0: VertexHandle,
+    v1: VertexHandle
+) -> EdgeHandle {
+    let e0 = mesh.add_element(
+        Edge::with_data(EdgeData {
+            vertex: v0,
             ..EdgeData::default()
-        }),
-        ..Edge::default()
-    });
+        }));
 
-    let e1 = mesh.add_element(Edge {
-        data: RefCell::new( EdgeData {
-            twin_index: e0,
-            vertex_index: v1,
+    let e1 = mesh.add_element(
+        Edge::with_data(EdgeData {
+            adjacent: e0,
+            vertex: v1,
             ..EdgeData::default()
-        }),
-        ..Edge::default()
-    });
+        }));
 
-    mesh.get_element(&e0).map(|e| e.data_mut().twin_index = e1);
-    mesh.get_element(&v0).map(|e| e.data_mut().edge_index = e0);
-    mesh.get_element(&v1).map(|e| e.data_mut().edge_index = e1);
+    mesh.get_element(&e0).map(|e| e.data_mut().adjacent = e1);
+    mesh.get_element(&v0).map(|e| e.data_mut().edge = e0);
+    mesh.get_element(&v1).map(|e| e.data_mut().edge = e1);
 
     return e0;
 }
 
 pub fn build_half_edge(
     mesh: &mut Mesh,
-    twin: EdgeIndex,
-    vert: VertexIndex,
-) -> EdgeIndex {
+    adjacent: EdgeHandle,
+    vertex: VertexHandle,
+) -> EdgeHandle {
     let e0 = mesh.add_element(
         Edge::with_data(EdgeData {
-            vertex_index: vert,
-            twin_index: twin,
+            vertex,
+            adjacent,
             ..EdgeData::default()
         })
     );
 
-    mesh.get_element(&twin).map(|e| e.data_mut().twin_index = e0);
-    mesh.get_element(&vert).map(|v| v.data_mut().edge_index = e0);
+    mesh.get_element(&adjacent).map(|e| e.data_mut().adjacent = e0);
+    mesh.get_element(&vertex).map(|v| v.data_mut().edge = e0);
 
     return e0;
 }
 
 pub fn assoc_vert_edge(
     mesh: &Mesh,
-    vert: VertexIndex,
-    edge: EdgeIndex
+    vert: VertexHandle,
+    edge: EdgeHandle
 ) {
-    mesh.get_element(&vert).map(|v| v.data_mut().edge_index = edge);
-    mesh.get_element(&edge).map(|e| e.data_mut().vertex_index = vert);
+    mesh.get_element(&vert).map(|v| v.data_mut().edge = edge);
+    mesh.get_element(&edge).map(|e| e.data_mut().vertex = vert);
 }
 
 /// Given an edge index, and a vertex index, creates a new edge connected to the specified edge
 pub fn build_full_edge_from(
     mesh: &mut Mesh,
-    prev: EdgeIndex,
-    v1: VertexIndex
-) -> EdgeIndex {
+    prev: EdgeHandle,
+    v1: VertexHandle
+) -> EdgeHandle {
     let e0 = {
         let v0 = mesh.edge(prev).twin().vertex().index;
         build_full_edge(mesh, v0, v1)
@@ -75,11 +71,11 @@ pub fn build_full_edge_from(
 
 pub fn close_edge_loop(
     mesh: &mut Mesh,
-    prev: EdgeIndex,
-    next: EdgeIndex
-) -> EdgeIndex {
-    let v0 = mesh.edge(prev).twin().element().map(|e| e.data().vertex_index);
-    let v1 = mesh.edge(next).element().map(|e| e.data().vertex_index);
+    prev: EdgeHandle,
+    next: EdgeHandle
+) -> EdgeHandle {
+    let v0 = mesh.edge(prev).twin().element().map(|e| e.data().vertex);
+    let v1 = mesh.edge(next).element().map(|e| e.data().vertex);
 
     if let (Some(v0), Some(v1)) = (v0, v1) {
         let e0 = build_full_edge(mesh, v0, v1);
@@ -88,28 +84,28 @@ pub fn close_edge_loop(
         e0
     } else {
         error!("Failed to properly discover associated vertices.");
-        EdgeIndex::default()
+        EdgeHandle::default()
     }
 }
 
 /// Associates a previous and next edge
 pub fn connect_edges(
     mesh: &mut Mesh,
-    prev: EdgeIndex,
-    next: EdgeIndex
+    prev: EdgeHandle,
+    next: EdgeHandle
 ) {
-    mesh.get_element(&prev).map(|e| e.data.borrow_mut().next_index = next);
-    mesh.get_element(&next).map(|e| e.data.borrow_mut().prev_index = prev);
+    mesh.get_element(&prev).map(|e| e.data_mut().next = next);
+    mesh.get_element(&next).map(|e| e.data_mut().prev = prev);
 }
 
 pub fn assign_face_to_loop(
     mesh: &Mesh,
-    root_edge_index: EdgeIndex,
-    face_index: FaceIndex
+    root_edge_index: EdgeHandle,
+    face_index: FaceHandle
 ) {
     let face = mesh.face(face_index);
     if let Some(mut data) = face.data_mut() {
-        data.edge_index = root_edge_index;
+        data.edge = root_edge_index;
     } else {
         error!("Invalid face index specified: {:?}", face_index);
         return;
@@ -117,11 +113,11 @@ pub fn assign_face_to_loop(
     let mut edge = face.edge();
     loop {
         if let Some(mut data) = edge.data_mut() {
-            if data.face_index == face.index {
+            if data.face == face.index {
                 break;
             }
-            data.face_index = face.index;
-            if data.next_index == root_edge_index {
+            data.face = face.index;
+            if data.next == root_edge_index {
                 break;
             }
         } else {

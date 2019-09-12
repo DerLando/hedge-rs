@@ -4,228 +4,69 @@
 
 use std::fmt;
 use std::sync::atomic;
-use std::cmp;
-use std::cell::{Cell, RefCell, Ref, RefMut};
-use std::marker::PhantomData;
-use std::hash::{Hash, Hasher};
 
 #[cfg(feature="amethyst")]
 pub mod amethyst;
 
+pub use crate::handles::*;
+pub use crate::elements::*;
 pub use crate::kernel::*;
 pub use crate::function_sets::*;
 pub use crate::iterators::*;
 
+pub mod handles;
+pub mod elements;
 pub mod kernel;
+pub mod proxies;
+pub mod mesh;
 pub mod utils;
 pub mod function_sets;
 pub mod iterators;
 
 pub type Tag = u32;
-pub type Offset = u32;
-pub type Generation = u32;
 pub type Position = [f32; 3];
 pub type Normal = [f32; 3];
-
-////////////////////////////////////////////////////////////////////////////////
-
-/// Marker trait for Index types
-pub trait ElementIndex {}
-
-/// Marker trait for structs holding element specific data
-pub trait ElementData {}
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
     fn is_valid(&self) -> bool;
 }
 
-pub trait IsActive {
-    fn is_active(&self) -> bool;
-}
-
-pub trait Taggable {
-    fn tag(&self) -> Tag;
-    fn set_tag(&self, tag: Tag);
-}
-
-pub trait Storable {
-    fn generation(&self) -> Generation;
-    fn set_generation(&self, generation: Generation);
-    fn status(&self) -> ElementStatus;
-    fn set_status(&self, status: ElementStatus);
-}
-
-/// Our default value for uninitialized or unconnected components in the mesh.
-pub const INVALID_COMPONENT_OFFSET: Offset = 0;
-
-/// Type-safe index into kernel storage.
-#[derive(Default, Debug, Clone, Eq)]
-pub struct Index<T> {
-    pub offset: Offset,
-    pub generation: Generation,
-    _marker: PhantomData<T>,
-}
-
-impl<T: Clone> Copy for Index<T> {}
-
-impl<T> Hash for Index<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.offset.hash(state);
-        self.generation.hash(state);
-    }
-}
-
-impl<T> Index<T> {
-    pub fn new(offset: Offset) -> Index<T> {
-        Index {
-            offset,
-            generation: 0,
-            _marker: PhantomData::default(),
-        }
-    }
-
-    pub fn with_generation(offset: Offset, generation: Generation) -> Index<T> {
-        Index {
-            offset,
-            generation,
-            _marker: PhantomData::default(),
-        }
-    }
-}
-
-impl<T> PartialOrd for Index<T> {
-    fn partial_cmp(&self, other: &Index<T>) -> Option<cmp::Ordering> {
-        // Only the offset should matter when it comes to ordering
-        self.offset.partial_cmp(&other.offset)
-    }
-}
-
-impl<T> PartialEq for Index<T> {
-    fn eq(&self, other: &Index<T>) -> bool {
-        self.offset.eq(&other.offset) && self.generation.eq(&other.generation)
-    }
-}
-
-impl<T> IsValid for Index<T> {
-    fn is_valid(&self) -> bool {
-        self.offset != INVALID_COMPONENT_OFFSET
-    }
-}
-
-/// Whether or not a cell is current or 'removed'
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-pub enum ElementStatus {
-    ACTIVE,
-    INACTIVE,
-}
-
-/// Trait for accessing Mesh element properties.
-#[derive(Debug, Clone)]
-pub struct MeshElement<D: ElementData + Default> {
-    tag: Cell<Tag>,
-    generation: Cell<Generation>,
-    status: Cell<ElementStatus>,
-    data: RefCell<D>,
-}
-
-impl<D: ElementData + Default> Default for MeshElement<D> {
-    fn default() -> Self {
-        MeshElement {
-            tag: Cell::new(0),
-            generation: Cell::new(1),
-            status: Cell::new(ElementStatus::INACTIVE),
-            data: RefCell::default()
-        }
-    }
-}
-
-impl<D: ElementData + Default> MeshElement<D> {
-    pub fn with_data(data: D) -> Self {
-        MeshElement {
-            data: RefCell::new(data),
-            ..MeshElement::default()
-        }
-    }
-
-    pub fn data(&self) -> Ref<D> {
-        self.data.borrow()
-    }
-
-    pub fn data_mut(&self) -> RefMut<D> {
-        self.data.borrow_mut()
-    }
-}
-
-impl<D: ElementData + Default> Storable for MeshElement<D> {
-    fn generation(&self) -> Generation {
-        self.generation.get()
-    }
-
-    fn set_generation(&self, generation: Generation) {
-        self.generation.set(generation);
-    }
-
-    fn status(&self) -> ElementStatus {
-        self.status.get()
-    }
-
-    fn set_status(&self, status: ElementStatus) {
-        self.status.set(status);
-    }
-}
-
-impl<D: ElementData + Default> Taggable for MeshElement<D> {
-    fn tag(&self) -> Tag {
-        self.tag.get()
-    }
-
-    fn set_tag(&self, tag: Tag) {
-        self.tag.set(tag);
-    }
-}
-
-impl<D: ElementData + Default> IsActive for MeshElement<D> {
-    fn is_active(&self) -> bool {
-        self.status.get() == ElementStatus::ACTIVE
-    }
-}
-
 /// TODO: Documentation
 #[derive(Debug, Clone, Default)]
 pub struct EdgeData {
-    /// The adjacent or 'twin' half-edge
-    pub twin_index: EdgeIndex,
-    /// The index of the next edge in the loop
-    pub next_index: EdgeIndex,
-    /// The index of the previous edge in the loop
-    pub prev_index: EdgeIndex,
-    /// The index of the face this edge loop defines
-    pub face_index: FaceIndex,
-    /// The index of the Vertex for this edge.
-    pub vertex_index: VertexIndex,
+    /// The adjacent half-edge
+    pub adjacent: EdgeHandle,
+    /// The Handle of the next edge in the loop
+    pub next: EdgeHandle,
+    /// The Handle of the previous edge in the loop
+    pub prev: EdgeHandle,
+    /// The Handle of the face this edge loop defines
+    pub face: FaceHandle,
+    /// The Handle of the Vertex for this edge.
+    pub vertex: VertexHandle,
 }
 pub type Edge = MeshElement<EdgeData>;
-pub type EdgeIndex = Index<Edge>;
+pub type EdgeHandle = Handle<Edge>;
 impl ElementData for EdgeData {}
-impl ElementIndex for  EdgeIndex {}
+impl ElementHandle for  EdgeHandle {}
 impl Edge {
     /// Returns true when this edge has a previous and next edge.
     pub fn is_connected(&self) -> bool {
-        let data = self.data.borrow();
-        data.next_index.is_valid() && data.prev_index.is_valid()
+        let data = self.data();
+        data.next.is_valid() && data.prev.is_valid()
     }
 }
 impl IsValid for Edge {
     /// An Edge is valid when it has a valid twin index, a valid vertex index
     /// and `is_connected`
     fn is_valid(&self) -> bool {
-        let data = self.data.borrow();
+        let data = self.data();
         self.is_active() &&
-            data.vertex_index.is_valid() &&
-            data.twin_index.is_valid() &&
-            data.next_index.is_valid() &&
-            data.prev_index.is_valid()
+            data.vertex.is_valid() &&
+            data.adjacent.is_valid() &&
+            data.next.is_valid() &&
+            data.prev.is_valid()
     }
 }
 
@@ -233,29 +74,29 @@ impl IsValid for Edge {
 #[derive(Debug, Clone, Default)]
 pub struct VertexData {
     /// Index of the outgoing edge
-    pub edge_index: EdgeIndex,
+    pub edge: EdgeHandle,
     /// Index of point this vertex belongs to
-    pub point_index: PointIndex,
+    pub point: PointHandle,
 }
 pub type Vertex = MeshElement<VertexData>;
-pub type VertexIndex = Index<Vertex>;
+pub type VertexHandle = Handle<Vertex>;
 impl ElementData for VertexData {}
-impl ElementIndex for VertexIndex {}
+impl ElementHandle for VertexHandle {}
 impl Vertex {
-    pub fn new(edge_index: EdgeIndex, point_index: PointIndex) -> Self {
-        Vertex::with_data(VertexData { edge_index, point_index })
+    pub fn new(edge: EdgeHandle, point: PointHandle) -> Self {
+        Vertex::with_data(VertexData { edge, point })
     }
 
-    pub fn for_edge(edge_index: EdgeIndex) -> Self {
+    pub fn for_edge(edge: EdgeHandle) -> Self {
         Vertex::with_data(VertexData {
-            edge_index,
+            edge,
             ..VertexData::default()
         })
     }
 
-    pub fn at_point(point_index: PointIndex) -> Self {
+    pub fn at_point(point: PointHandle) -> Self {
         Vertex::with_data(VertexData {
-            point_index,
+            point,
             ..VertexData::default()
         })
     }
@@ -263,7 +104,7 @@ impl Vertex {
 impl IsValid for Vertex {
     /// A vertex is considered "valid" as long as it has a valid edge index.
     fn is_valid(&self) -> bool {
-        self.is_active() && self.data().edge_index.is_valid()
+        self.is_active() && self.data().edge.is_valid()
     }
 }
 
@@ -271,22 +112,22 @@ impl IsValid for Vertex {
 #[derive(Debug, Clone, Default)]
 pub struct FaceData {
     /// The "root" of an edge loop that defines this face.
-    pub edge_index: EdgeIndex,
+    pub edge: EdgeHandle,
 }
 pub type Face = MeshElement<FaceData>;
-pub type FaceIndex = Index<Face>;
+pub type FaceHandle = Handle<Face>;
 impl ElementData for FaceData {}
-impl ElementIndex for FaceIndex {}
+impl ElementHandle for FaceHandle {}
 impl Face {
-    pub fn new(edge_index: EdgeIndex) -> Self {
-        Face::with_data(FaceData { edge_index })
+    pub fn new(edge: EdgeHandle) -> Self {
+        Face::with_data(FaceData { edge })
     }
 }
 impl IsValid for Face {
     /// A face is considered "valid" as long as it has an edge index
     /// other than `INVALID_COMPONENT_INDEX`
     fn is_valid(&self) -> bool {
-        self.is_active() && self.data().edge_index.is_valid()
+        self.is_active() && self.data().edge.is_valid()
     }
 }
 
@@ -295,10 +136,8 @@ pub struct PointData {
     pub position: Position,
 }
 impl PointData {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        PointData {
-            position: [x, y, z],
-        }
+    pub fn new(position: Position) -> Self {
+        PointData { position }
     }
 }
 impl Default for PointData {
@@ -309,12 +148,25 @@ impl Default for PointData {
     }
 }
 pub type Point = MeshElement<PointData>;
-pub type PointIndex = Index<Point>;
+pub type PointHandle = Handle<Point>;
 impl ElementData for PointData {}
-impl ElementIndex for PointIndex {}
+impl ElementHandle for PointHandle {}
 impl Point {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Point::with_data(PointData::new(x, y, z))
+    pub fn new(position: Position) -> Self {
+        Point::with_data(PointData::new(position))
+    }
+
+    pub fn from_coords(x: f32, y: f32, z: f32) -> Self {
+        Point::with_data(PointData::new([x, y, z]))
+    }
+
+    pub fn from_slice(offset: usize, values: &[f32]) -> Self {
+        assert!(values.len() >= (offset + 3));
+        Point::with_data(PointData::new([
+            values[offset],
+            values[offset+1],
+            values[offset+2],
+        ]))
     }
 }
 impl IsValid for Point {
@@ -327,17 +179,17 @@ impl IsValid for Point {
 
 /// Interface for adding elements to a `Mesh`.
 pub trait AddElement<E> {
-    fn add_element(&mut self, element: E) -> Index<E>;
+    fn add_element(&mut self, element: E) -> Handle<E>;
 }
 
 /// Interface for removing elements to a `Mesh`.
 pub trait RemoveElement<E> {
-    fn remove_element(&mut self, index: Index<E>);
+    fn remove_element(&mut self, index: Handle<E>);
 }
 
 /// Interface for getting an element reference.
 pub trait GetElement<E> {
-    fn get_element(&self, index: &Index<E>) -> Option<&E>;
+    fn get_element(&self, index: &Handle<E>) -> Option<&E>;
 }
 
 pub struct Mesh {
@@ -371,7 +223,7 @@ impl Mesh {
     }
 
     /// Returns a `FaceFn` for the given index.
-    pub fn face(&self, index: FaceIndex) -> FaceFn {
+    pub fn face(&self, index: FaceHandle) -> FaceFn {
         FaceFn::new(index, &self)
     }
 
@@ -382,12 +234,12 @@ impl Mesh {
     pub fn faces(&self) -> impl Iterator<Item=FaceFn> {
         self.kernel.face_buffer.active_cells()
             .map(move |(offset, _)| {
-                FaceFn::new(FaceIndex::new(offset as u32), self)
+                FaceFn::new(FaceHandle::new(offset as u32), self)
             })
     }
 
     /// Returns an `EdgeFn` for the given index.
-    pub fn edge(&self, index: EdgeIndex) -> EdgeFn {
+    pub fn edge(&self, index: EdgeHandle) -> EdgeFn {
         EdgeFn::new(index, &self)
     }
 
@@ -398,12 +250,12 @@ impl Mesh {
     pub fn edges(&self) -> impl Iterator<Item=EdgeFn> {
         self.kernel.edge_buffer.active_cells()
             .map(move |(offset, _)| {
-                EdgeFn::new(EdgeIndex::new(offset as u32), self)
+                EdgeFn::new(EdgeHandle::new(offset as u32), self)
             })
     }
 
     /// Returns a `VertexFn` for the given index.
-    pub fn vertex(&self, index: VertexIndex) -> VertexFn {
+    pub fn vertex(&self, index: VertexHandle) -> VertexFn {
         VertexFn::new(index, &self)
     }
 
@@ -414,7 +266,7 @@ impl Mesh {
     pub fn vertices(&self) -> impl Iterator<Item=VertexFn> {
         self.kernel.vertex_buffer.active_cells()
             .map(move |(offset, _)| {
-                VertexFn::new(VertexIndex::new(offset as u32), self)
+                VertexFn::new(VertexHandle::new(offset as u32), self)
             })
     }
 
@@ -422,19 +274,19 @@ impl Mesh {
         self.kernel.point_buffer.len() - 1
     }
 
-    pub fn add_element<E>(&mut self, element: E) -> Index<E>
+    pub fn add_element<E>(&mut self, element: E) -> Handle<E>
         where kernel::Kernel: AddElement<E>
     {
         self.kernel.add_element(element)
     }
 
-    pub fn remove_element<E>(&mut self, index: Index<E>)
+    pub fn remove_element<E>(&mut self, index: Handle<E>)
         where kernel::Kernel: RemoveElement<E>
     {
         self.kernel.remove_element(index)
     }
 
-    pub fn get_element<E>(&self, index: &Index<E>) -> Option<&E>
+    pub fn get_element<E>(&self, index: &Handle<E>) -> Option<&E>
         where kernel::Kernel: GetElement<E>
     {
         self.kernel.get_element(index)
@@ -468,16 +320,16 @@ mod tests {
 
     #[test]
     fn index_types_are_invalid_by_default() {
-        let vert = EdgeIndex::default();
+        let vert = EdgeHandle::default();
         assert!(!vert.is_valid());
 
-        let edge = EdgeIndex::default();
+        let edge = EdgeHandle::default();
         assert!(!edge.is_valid());
 
-        let point = PointIndex::default();
+        let point = PointHandle::default();
         assert!(!point.is_valid());
 
-        let face = FaceIndex::default();
+        let face = FaceHandle::default();
         assert!(!face.is_valid());
     }
 
@@ -525,19 +377,19 @@ mod tests {
         let mesh = Mesh::new();
 
         assert_eq!(mesh.edge_count(), 0);
-        assert_eq!(mesh.get_element(&EdgeIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.get_element(&EdgeHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.edge_buffer.len(), 1);
 
         assert_eq!(mesh.face_count(), 0);
-        assert_eq!(mesh.get_element(&FaceIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.get_element(&FaceHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.face_buffer.len(), 1);
 
         assert_eq!(mesh.vertex_count(), 0);
-        assert_eq!(mesh.get_element(&VertexIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.get_element(&VertexHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
 
         assert_eq!(mesh.point_count(), 0);
-        assert_eq!(mesh.get_element(&PointIndex::new(0)).is_some(), false);
+        assert_eq!(mesh.get_element(&PointHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.point_buffer.len(), 1);
     }
 
@@ -594,9 +446,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
+        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
 
         let v0 = mesh.add_element(Vertex::at_point(p0));
         let v1 = mesh.add_element(Vertex::at_point(p1));
@@ -630,9 +482,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Face::new(EdgeIndex::new(1)));
-        mesh.add_element(Face::new(EdgeIndex::new(4)));
-        mesh.add_element(Face::new(EdgeIndex::new(7)));
+        mesh.add_element(Face::new(EdgeHandle::new(1)));
+        mesh.add_element(Face::new(EdgeHandle::new(4)));
+        mesh.add_element(Face::new(EdgeHandle::new(7)));
 
         assert_eq!(mesh.face_count(), 3);
 
@@ -651,10 +503,10 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        mesh.add_element(Vertex::new(EdgeIndex::new(1), PointIndex::new(1)));
-        let v = mesh.add_element(Vertex::new(EdgeIndex::new(4), PointIndex::new(1)));
+        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add_element(Vertex::new(EdgeHandle::new(1), PointHandle::new(1)));
+        let v = mesh.add_element(Vertex::new(EdgeHandle::new(4), PointHandle::new(1)));
         mesh.remove_element(v);
 
         let mut vertices_iterated_over = 0;

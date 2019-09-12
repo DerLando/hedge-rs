@@ -4,7 +4,7 @@ use super::*;
 use super::iterators;
 use std::cell::{Ref, RefMut};
 
-pub trait FunctionSet<'mesh, I: ElementIndex + Default, D: ElementData + Default> {
+pub trait FunctionSet<'mesh, I: ElementHandle + Default, D: ElementData + Default> {
     fn new(index: I, mesh: &'mesh Mesh) -> Self;
     fn element(&self) -> Option<&'mesh MeshElement<D>>;
 
@@ -19,11 +19,11 @@ pub trait FunctionSet<'mesh, I: ElementIndex + Default, D: ElementData + Default
     }
 
     fn data(&'mesh self) -> Option<Ref<D>> {
-        self.element().map(|e| e.data.borrow())
+        self.element().map(|e| e.data())
     }
 
     fn data_mut(&'mesh self) -> Option<RefMut<D>> {
-        self.element().map(|e| e.data.borrow_mut())
+        self.element().map(|e| e.data_mut())
     }
 
 //    fn props(&'mesh self) -> Option<&'mesh ElementProperties> {
@@ -39,11 +39,11 @@ pub trait FunctionSet<'mesh, I: ElementIndex + Default, D: ElementData + Default
 #[derive(Debug, Copy, Clone)]
 pub struct FaceFn<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: FaceIndex,
+    pub index: FaceHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, FaceIndex, FaceData> for FaceFn<'mesh> {
-    fn new(index: FaceIndex, mesh: &'mesh Mesh) -> Self {
+impl<'mesh> FunctionSet<'mesh, FaceHandle, FaceData> for FaceFn<'mesh> {
+    fn new(index: FaceHandle, mesh: &'mesh Mesh) -> Self {
         FaceFn {
             mesh,
             index,
@@ -58,7 +58,7 @@ impl<'mesh> FunctionSet<'mesh, FaceIndex, FaceData> for FaceFn<'mesh> {
 impl<'mesh> FaceFn<'mesh> {
     /// Convert this `FaceFn` to an `EdgeFn`.
     pub fn edge(&self) -> EdgeFn<'mesh> {
-        let edge_index = self.data().map(|data| data.edge_index);
+        let edge_index = self.data().map(|data| data.edge);
         EdgeFn::maybe(edge_index, self.mesh)
     }
 
@@ -81,11 +81,11 @@ impl<'mesh> IsValid for FaceFn<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct EdgeFn<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: EdgeIndex,
+    pub index: EdgeHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, EdgeIndex, EdgeData> for EdgeFn<'mesh> {
-    fn new(index: EdgeIndex, mesh: &'mesh Mesh) -> Self {
+impl<'mesh> FunctionSet<'mesh, EdgeHandle, EdgeData> for EdgeFn<'mesh> {
+    fn new(index: EdgeHandle, mesh: &'mesh Mesh) -> Self {
         EdgeFn {
             mesh,
             index,
@@ -104,31 +104,31 @@ impl<'mesh> EdgeFn<'mesh> {
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's next edge
     pub fn next(&self) -> EdgeFn<'mesh> {
-        let next_index = self.data().map(|data| data.next_index);
+        let next_index = self.data().map(|data| data.next);
         EdgeFn::maybe(next_index, self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's prev edge
     pub fn prev(&self) -> EdgeFn<'mesh> {
-        let prev_index = self.data().map(|data| data.prev_index);
+        let prev_index = self.data().map(|data| data.prev);
         EdgeFn::maybe(prev_index, self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `EdgeFn` of it's twin edge
     pub fn twin(&self) -> EdgeFn<'mesh> {
-        let twin_index = self.data().map(|data| data.twin_index);
+        let twin_index = self.data().map(|data| data.adjacent);
         EdgeFn::maybe(twin_index, self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `FaceFn`
     pub fn face(&self) -> FaceFn<'mesh> {
-        let face_index = self.data().map(|data| data.face_index);
+        let face_index = self.data().map(|data| data.face);
         FaceFn::maybe(face_index, self.mesh)
     }
 
     /// Convert this `EdgeFn` to an `VertexFn`
     pub fn vertex(&self) -> VertexFn<'mesh> {
-        let vertex_index = self.data().map(|data| data.vertex_index);
+        let vertex_index = self.data().map(|data| data.vertex);
         VertexFn::maybe(vertex_index, self.mesh)
     }
 }
@@ -143,11 +143,11 @@ impl<'mesh> IsValid for EdgeFn<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct VertexFn<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: VertexIndex,
+    pub index: VertexHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, VertexIndex, VertexData> for VertexFn<'mesh> {
-    fn new(index: VertexIndex, mesh: &'mesh Mesh) -> Self {
+impl<'mesh> FunctionSet<'mesh, VertexHandle, VertexData> for VertexFn<'mesh> {
+    fn new(index: VertexHandle, mesh: &'mesh Mesh) -> Self {
         VertexFn {
             mesh,
             index,
@@ -162,7 +162,7 @@ impl<'mesh> FunctionSet<'mesh, VertexIndex, VertexData> for VertexFn<'mesh> {
 impl<'mesh> VertexFn<'mesh> {
     /// Convert this `VertexFn` to an `EdgeFn`
     pub fn edge(&self) -> EdgeFn<'mesh> {
-        let edge_index = self.data().map(|data| data.edge_index);
+        let edge_index = self.data().map(|data| data.edge);
         EdgeFn::maybe(edge_index, self.mesh)
     }
 
@@ -172,7 +172,7 @@ impl<'mesh> VertexFn<'mesh> {
 
     pub fn point(&self) -> Option<&'mesh Point> {
         self.data().and_then(|data| {
-            self.mesh.get_element(&data.point_index)
+            self.mesh.get_element(&data.point)
         })
     }
 }

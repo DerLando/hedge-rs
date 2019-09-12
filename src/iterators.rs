@@ -8,7 +8,7 @@ pub struct VertexCirculator<'mesh> {
     tag: Tag,
     vert: VertexFn<'mesh>,
     last_edge: Option<EdgeFn<'mesh>>,
-    central_point: PointIndex,
+    central_point: PointHandle,
 }
 
 impl<'mesh> VertexCirculator<'mesh> {
@@ -18,8 +18,8 @@ impl<'mesh> VertexCirculator<'mesh> {
             vert,
             last_edge: None,
             central_point: vert.data()
-                .map(|d| d.point_index)
-                .unwrap_or(PointIndex::default())
+                .map(|d| d.point)
+                .unwrap_or(PointHandle::default())
         }
     }
 }
@@ -42,7 +42,7 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
                 if next_edge.is_boundary() {
                     warn!("Vertex circulator terminated due to boundary edge.");
                     None
-                } else if let Some(pindex) = next_edge.vertex().data().map(|d| d.point_index) {
+                } else if let Some(pindex) = next_edge.vertex().data().map(|d| d.point) {
                     if pindex == self.central_point {
                         Some(next_edge)
                     } else {
@@ -141,9 +141,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
+        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
 
         let v0 = mesh.add_element(Vertex::at_point(p0));
         let v1 = mesh.add_element(Vertex::at_point(p1));
@@ -177,9 +177,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::new(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::new(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::new(0.0, 1.0, 0.0));
+        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
 
         let v0 = mesh.add_element(Vertex::at_point(p0));
         let v1 = mesh.add_element(Vertex::at_point(p1));
@@ -208,7 +208,7 @@ mod tests {
         assert_eq!(iter_count, 3);
     }
 
-    fn build_fan(points: [PointIndex; 5], mesh: &mut Mesh) -> VertexIndex {
+    fn build_fan(points: [PointHandle; 5], mesh: &mut Mesh) -> VertexHandle {
         let v0 = mesh.add_element(Vertex::at_point(points[0]));
         let v1 = mesh.add_element(Vertex::at_point(points[1]));
         let v2 = mesh.add_element(Vertex::at_point(points[4]));
@@ -272,11 +272,11 @@ mod tests {
         let mut mesh = Mesh::new();
 
         let points = [
-            mesh.add_element(Point::new(-1.0, 0.0, 0.0)),
-            mesh.add_element(Point::new(0.0, -1.0, 0.0)),
-            mesh.add_element(Point::new(1.0, 0.0, 0.0)),
-            mesh.add_element(Point::new(0.0, 1.0, 0.0)),
-            mesh.add_element(Point::new(0.0, 0.0, 0.0)),
+            mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0)),
+            mesh.add_element(Point::from_coords(0.0, -1.0, 0.0)),
+            mesh.add_element(Point::from_coords(1.0, 0.0, 0.0)),
+            mesh.add_element(Point::from_coords(0.0, 1.0, 0.0)),
+            mesh.add_element(Point::from_coords(0.0, 0.0, 0.0)),
         ];
 
         let root_vert = build_fan(points, &mut mesh);
