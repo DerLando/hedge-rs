@@ -1,7 +1,13 @@
 //! Facades over a mesh and component index to enable fluent adjcency traversals.
 
-use super::*;
-use super::iterators;
+use crate::traits::*;
+use crate::elements::*;
+use crate::mesh::Mesh;
+use crate::iterators::{
+    FaceEdges,
+    FaceVertices,
+    VertexCirculator
+};
 use std::cell::{Ref, RefMut};
 
 pub trait FunctionSet<'mesh, I: ElementHandle + Default, D: ElementData + Default> {
@@ -25,14 +31,6 @@ pub trait FunctionSet<'mesh, I: ElementHandle + Default, D: ElementData + Defaul
     fn data_mut(&'mesh self) -> Option<RefMut<D>> {
         self.element().map(|e| e.data_mut())
     }
-
-//    fn props(&'mesh self) -> Option<&'mesh ElementProperties> {
-//        self.element().map(|e| e.props.borrow())
-//    }
-//
-//    fn props_mut(&'mesh self) -> Option<&mut ElementProperties> {
-//        self.element().map(|e| &mut e.props.borrow_mut())
-//    }
 }
 
 /// Function set for operations related to the Face struct
@@ -166,7 +164,7 @@ impl<'mesh> VertexFn<'mesh> {
         EdgeFn::maybe(edge_index, self.mesh)
     }
 
-    pub fn edges(&self) -> iterators::VertexCirculator {
+    pub fn edges(&self) -> VertexCirculator {
         VertexCirculator::new(self.mesh.next_tag(), *self)
     }
 

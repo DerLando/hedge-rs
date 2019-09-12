@@ -3,13 +3,8 @@ use std::marker::PhantomData;
 use std::hash::{Hash, Hasher};
 use std::cmp;
 
-use super::IsValid;
-
-/// Marker trait for handle types
-pub trait ElementHandle {}
-
-pub type Offset = u32;
-pub type Generation = u32;
+use super::traits::IsValid;
+use super::data::{Offset, Generation};
 
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_OFFSET: Offset = std::u32::MAX;

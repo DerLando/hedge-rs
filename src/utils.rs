@@ -1,5 +1,7 @@
 use log::*;
-use super::*;
+use crate::mesh::Mesh;
+use crate::elements::*;
+use crate::proxy::*;
 
 /// Given two vertex indices, create an adjacent edge pair
 pub fn build_full_edge(
