@@ -84,7 +84,7 @@ pub struct EdgeFn<'mesh> {
     pub index: EdgeHandle,
 }
 
-impl<'mesh> FunctionSet<'mesh, EdgeHandle, EdgeData> for EdgeFn<'mesh> {
+impl<'mesh> FunctionSet<'mesh, EdgeHandle, HalfEdgeData> for EdgeFn<'mesh> {
     fn new(index: EdgeHandle, mesh: &'mesh Mesh) -> Self {
         EdgeFn {
             mesh,

@@ -8,7 +8,7 @@ use log::*;
 use super::{
     MeshElement, IsValid, IsActive, Storable, Handle, ElementStatus, ElementData,
     Face, HalfEdge, Vertex, Point, AddElement, RemoveElement, GetElement,
-    EdgeData, FaceData, VertexData, PointData, FaceHandle, VertexHandle,
+    HalfEdgeData, FaceData, VertexData, PointData, FaceHandle, VertexHandle,
     Offset,
 };
 
@@ -185,7 +185,7 @@ impl<D: ElementData + Default> ElementBuffer<D> {
 /// Storage interface for Mesh types
 #[derive(Debug, Default)]
 pub struct Kernel {
-    pub edge_buffer: ElementBuffer<EdgeData>,
+    pub edge_buffer: ElementBuffer<HalfEdgeData>,
     pub face_buffer: ElementBuffer<FaceData>,
     pub vertex_buffer: ElementBuffer<VertexData>,
     pub point_buffer: ElementBuffer<PointData>,
@@ -469,9 +469,9 @@ mod tests {
 
     fn make_twin_edge(kernel: &mut Kernel, twin_index: EdgeHandle) -> EdgeHandle {
         let e0 = kernel.add_element(HalfEdge::with_data(
-            EdgeData {
+            HalfEdgeData {
                 adjacent: twin_index,
-                ..EdgeData::default()
+                ..HalfEdgeData::default()
             }
         ));
         kernel.edge_buffer.buffer[twin_index.offset as usize].data_mut().adjacent = e0;

@@ -34,7 +34,7 @@ pub trait IsValid {
 
 /// TODO: Documentation
 #[derive(Debug, Clone, Default)]
-pub struct EdgeData {
+pub struct HalfEdgeData {
     /// The adjacent half-edge
     pub adjacent: EdgeHandle,
     /// The Handle of the next edge in the loop
@@ -46,9 +46,9 @@ pub struct EdgeData {
     /// The Handle of the Vertex for this edge.
     pub vertex: VertexHandle,
 }
-pub type HalfEdge = MeshElement<EdgeData>;
+pub type HalfEdge = MeshElement<HalfEdgeData>;
 pub type EdgeHandle = Handle<HalfEdge>;
-impl ElementData for EdgeData {}
+impl ElementData for HalfEdgeData {}
 impl ElementHandle for  EdgeHandle {}
 impl HalfEdge {
     /// Returns true when this edge has a previous and next edge.

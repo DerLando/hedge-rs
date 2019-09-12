@@ -8,16 +8,16 @@ pub fn build_full_edge(
     v1: VertexHandle
 ) -> EdgeHandle {
     let e0 = mesh.add_element(
-        HalfEdge::with_data(EdgeData {
+        HalfEdge::with_data(HalfEdgeData {
             vertex: v0,
-            ..EdgeData::default()
+            ..HalfEdgeData::default()
         }));
 
     let e1 = mesh.add_element(
-        HalfEdge::with_data(EdgeData {
+        HalfEdge::with_data(HalfEdgeData {
             adjacent: e0,
             vertex: v1,
-            ..EdgeData::default()
+            ..HalfEdgeData::default()
         }));
 
     mesh.get_element(&e0).map(|e| e.data_mut().adjacent = e1);
@@ -33,10 +33,10 @@ pub fn build_half_edge(
     vertex: VertexHandle,
 ) -> EdgeHandle {
     let e0 = mesh.add_element(
-        HalfEdge::with_data(EdgeData {
+        HalfEdge::with_data(HalfEdgeData {
             vertex,
             adjacent,
-            ..EdgeData::default()
+            ..HalfEdgeData::default()
         })
     );
 
