@@ -4,13 +4,15 @@ use std::sync::atomic;
 
 use crate::kernel::Kernel;
 use crate::data::Tag;
-use crate::handles::Handle;
+use crate::handles::{
+    HalfEdgeHandle, FaceHandle,
+    VertexHandle,
+};
 use crate::traits::*;
-use crate::elements::*;
 use crate::proxy::*;
 
 pub struct Mesh {
-    kernel: Kernel,
+    pub kernel: Kernel,
     tag: atomic::AtomicU32,
 }
 
@@ -39,7 +41,7 @@ impl Mesh {
         self.tag.fetch_add(1, atomic::Ordering::SeqCst)
     }
 
-    /// Returns a `FaceFn` for the given index.
+    /// Returns a `FaceProxy` for the given index.
     pub fn face(&self, index: FaceHandle) -> FaceProxy {
         FaceProxy::new(index, &self)
     }
@@ -55,7 +57,7 @@ impl Mesh {
             })
     }
 
-    /// Returns an `EdgeFn` for the given index.
+    /// Returns an `EdgeProxy` for the given index.
     pub fn edge(&self, index: HalfEdgeHandle) -> HalfEdgeProxy {
         HalfEdgeProxy::new(index, &self)
     }
@@ -71,7 +73,7 @@ impl Mesh {
             })
     }
 
-    /// Returns a `VertexFn` for the given index.
+    /// Returns a `VertexProxy` for the given index.
     pub fn vertex(&self, index: VertexHandle) -> VertexProxy {
         VertexProxy::new(index, &self)
     }
@@ -91,28 +93,34 @@ impl Mesh {
         self.kernel.point_buffer.len() - 1
     }
 
-    pub fn add_element<E>(&mut self, element: E) -> Handle<E>
+    pub fn add<E: Element>(&mut self, element: E) -> E::Handle
         where Kernel: AddElement<E>
     {
-        self.kernel.add_element(element)
+        self.kernel.add(element)
     }
 
-    pub fn remove_element<E>(&mut self, index: Handle<E>)
-        where Kernel: RemoveElement<E>
+    pub fn remove<H: ElementHandle>(&mut self, handle: H)
+        where Kernel: RemoveElement<H>
     {
-        self.kernel.remove_element(index)
+        self.kernel.remove(handle)
     }
 
-    pub fn get_element<E>(&self, index: &Handle<E>) -> Option<&E>
-        where Kernel: GetElement<E>
+    pub fn get<H: ElementHandle>(
+        &self, handle: H
+    ) -> Option<&<H as ElementHandle>::Element>
+        where Kernel: GetElement<H>
     {
-        self.kernel.get_element(index)
+        self.kernel.get(handle)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::handles::PointHandle;
+    use crate::elements::{
+        HalfEdge, Face, Point, Vertex
+    };
     use crate::utils;
     use log::*;
 
@@ -183,10 +191,10 @@ mod tests {
         let pindex = {
             let point = Point::default();
             assert_eq!(point.is_valid(), false);
-            mesh.add_element(point)
+            mesh.add(point)
         };
 
-        assert_eq!(mesh.get_element(&pindex).is_some(), true);
+        assert_eq!(mesh.get(pindex).is_some(), true);
     }
 
     #[test]
@@ -195,19 +203,19 @@ mod tests {
         let mesh = Mesh::new();
 
         assert_eq!(mesh.edge_count(), 0);
-        assert_eq!(mesh.get_element(&HalfEdgeHandle::new(0)).is_some(), false);
+        assert_eq!(mesh.get(HalfEdgeHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.edge_buffer.len(), 1);
 
         assert_eq!(mesh.face_count(), 0);
-        assert_eq!(mesh.get_element(&FaceHandle::new(0)).is_some(), false);
+        assert_eq!(mesh.get(FaceHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.face_buffer.len(), 1);
 
         assert_eq!(mesh.vertex_count(), 0);
-        assert_eq!(mesh.get_element(&VertexHandle::new(0)).is_some(), false);
+        assert_eq!(mesh.get(VertexHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
 
         assert_eq!(mesh.point_count(), 0);
-        assert_eq!(mesh.get_element(&PointHandle::new(0)).is_some(), false);
+        assert_eq!(mesh.get(PointHandle::new(0)).is_some(), false);
         assert_eq!(mesh.kernel.point_buffer.len(), 1);
     }
 
@@ -215,10 +223,10 @@ mod tests {
     fn can_add_and_remove_vertices() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let v0 = mesh.add_element(Vertex::default());
+        let v0 = mesh.add(Vertex::default());
         assert_eq!(mesh.vertex_count(), 1);
         assert_eq!(mesh.kernel.vertex_buffer.len(), 2);
-        mesh.remove_element(v0);
+        mesh.remove(v0);
         assert_eq!(mesh.vertex_count(), 0);
         assert_eq!(mesh.kernel.vertex_buffer.len(), 1);
     }
@@ -227,10 +235,10 @@ mod tests {
     fn can_add_and_remove_edges() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let e0 = mesh.add_element(HalfEdge::default());
+        let e0 = mesh.add(HalfEdge::default());
         assert_eq!(mesh.edge_count(), 1);
         assert_eq!(mesh.kernel.edge_buffer.len(), 2);
-        mesh.remove_element(e0);
+        mesh.remove(e0);
         assert_eq!(mesh.edge_count(), 0);
         assert_eq!(mesh.kernel.edge_buffer.len(), 1);
     }
@@ -239,10 +247,10 @@ mod tests {
     fn can_add_and_remove_faces() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let f0 = mesh.add_element(Face::default());
+        let f0 = mesh.add(Face::default());
         assert_eq!(mesh.face_count(), 1);
         assert_eq!(mesh.kernel.face_buffer.len(), 2);
-        mesh.remove_element(f0);
+        mesh.remove(f0);
         assert_eq!(mesh.face_count(), 0);
         assert_eq!(mesh.kernel.face_buffer.len(), 1);
     }
@@ -251,10 +259,10 @@ mod tests {
     fn can_add_and_remove_points() {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
-        let p0 = mesh.add_element(Point::default());
+        let p0 = mesh.add(Point::default());
         assert_eq!(mesh.point_count(), 1);
         assert_eq!(mesh.kernel.point_buffer.len(), 2);
-        mesh.remove_element(p0);
+        mesh.remove(p0);
         assert_eq!(mesh.point_count(), 0);
         assert_eq!(mesh.kernel.point_buffer.len(), 1);
     }
@@ -264,19 +272,19 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add_element(Vertex::at_point(p0));
-        let v1 = mesh.add_element(Vertex::at_point(p1));
-        let v2 = mesh.add_element(Vertex::at_point(p2));
+        let v0 = mesh.add(Vertex::at_point(p0));
+        let v1 = mesh.add(Vertex::at_point(p1));
+        let v2 = mesh.add(Vertex::at_point(p2));
 
         let e0 = utils::build_full_edge(&mut mesh, v0, v1);
         let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
         let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
 
-        let f0 = mesh.add_element(Face::default());
+        let f0 = mesh.add(Face::default());
         utils::assign_face_to_loop(&mesh, e0, f0);
 
         assert!(mesh.edge(e0).is_boundary());
@@ -300,9 +308,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Face::new(HalfEdgeHandle::new(1)));
-        mesh.add_element(Face::new(HalfEdgeHandle::new(4)));
-        mesh.add_element(Face::new(HalfEdgeHandle::new(7)));
+        mesh.add(Face::new(HalfEdgeHandle::new(1)));
+        mesh.add(Face::new(HalfEdgeHandle::new(4)));
+        mesh.add(Face::new(HalfEdgeHandle::new(7)));
 
         assert_eq!(mesh.face_count(), 3);
 
@@ -321,17 +329,17 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
-        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
-        mesh.add_element(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
-        let v = mesh.add_element(Vertex::new(HalfEdgeHandle::new(4), PointHandle::new(1)));
-        mesh.remove_element(v);
+        mesh.add(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        mesh.add(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
+        let v = mesh.add(Vertex::new(HalfEdgeHandle::new(4), PointHandle::new(1)));
+        mesh.remove(v);
 
         let mut vertices_iterated_over = 0;
 
         for vert in mesh.vertices() {
             assert!(vert.is_valid());
-            assert_ne!(vert.edge().index.offset, 4);
+            assert_ne!(vert.edge().index.offset(), 4);
             vertices_iterated_over += 1;
         }
 

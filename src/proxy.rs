@@ -1,7 +1,13 @@
 //! Facades over a mesh and component index to enable fluent adjcency traversals.
 
 use crate::traits::*;
-use crate::elements::*;
+use crate::handles::{
+    HalfEdgeHandle, FaceHandle,
+    VertexHandle,
+};
+use crate::elements::{
+    HalfEdge, Face, Vertex, Point,
+};
 use crate::mesh::Mesh;
 use crate::iterators::{
     FaceEdges,
@@ -10,25 +16,25 @@ use crate::iterators::{
 };
 use std::cell::{Ref, RefMut};
 
-pub trait ElementProxy<'mesh, I: ElementHandle + Default, D: ElementData + Default> {
-    fn new(index: I, mesh: &'mesh Mesh) -> Self;
-    fn element(&self) -> Option<&'mesh MeshElement<D>>;
+pub trait ElementProxy<'mesh, E: Element + 'mesh> {
+    fn new(handle: E::Handle, mesh: &'mesh Mesh) -> Self;
+    fn element(&self) -> Option<&'mesh E>;
 
-    fn maybe(index: Option<I>, mesh: &'mesh Mesh) -> Self
+    fn maybe(handle: Option<E::Handle>, mesh: &'mesh Mesh) -> Self
         where Self: std::marker::Sized
     {
-        if let Some(index) = index {
-            Self::new(index, mesh)
+        if let Some(handle) = handle {
+            Self::new(handle, mesh)
         } else {
             Self::new(Default::default(), mesh)
         }
     }
 
-    fn data(&'mesh self) -> Option<Ref<D>> {
+    fn data(&'mesh self) -> Option<Ref<E::Data>> {
         self.element().map(|e| e.data())
     }
 
-    fn data_mut(&'mesh self) -> Option<RefMut<D>> {
+    fn data_mut(&'mesh self) -> Option<RefMut<E::Data>> {
         self.element().map(|e| e.data_mut())
     }
 }
@@ -40,7 +46,7 @@ pub struct FaceProxy<'mesh> {
     pub index: FaceHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceProxy<'mesh> {
+impl<'mesh> ElementProxy<'mesh, Face> for FaceProxy<'mesh> {
     fn new(index: FaceHandle, mesh: &'mesh Mesh) -> Self {
         FaceProxy {
             mesh,
@@ -49,7 +55,7 @@ impl<'mesh> ElementProxy<'mesh, FaceHandle, FaceData> for FaceProxy<'mesh> {
     }
 
     fn element(&self) -> Option<&'mesh Face> {
-        self.mesh.get_element(&self.index)
+        self.mesh.get(self.index)
     }
 }
 
@@ -81,7 +87,7 @@ pub struct HalfEdgeProxy<'mesh> {
     pub index: HalfEdgeHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for HalfEdgeProxy<'mesh> {
+impl<'mesh> ElementProxy<'mesh, HalfEdge> for HalfEdgeProxy<'mesh> {
     fn new(index: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
         HalfEdgeProxy {
             mesh,
@@ -90,7 +96,7 @@ impl<'mesh> ElementProxy<'mesh, HalfEdgeHandle, HalfEdgeData> for HalfEdgeProxy<
     }
 
     fn element(&self) -> Option<&'mesh HalfEdge> {
-        self.mesh.get_element(&self.index)
+        self.mesh.get(self.index)
     }
 }
 
@@ -138,7 +144,7 @@ pub struct VertexProxy<'mesh> {
     pub index: VertexHandle,
 }
 
-impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexProxy<'mesh> {
+impl<'mesh> ElementProxy<'mesh, Vertex> for VertexProxy<'mesh> {
     fn new(index: VertexHandle, mesh: &'mesh Mesh) -> Self {
         VertexProxy {
             mesh,
@@ -147,7 +153,7 @@ impl<'mesh> ElementProxy<'mesh, VertexHandle, VertexData> for VertexProxy<'mesh>
     }
 
     fn element(&self) -> Option<&'mesh Vertex> {
-        self.mesh.get_element(&self.index)
+        self.mesh.get(self.index)
     }
 }
 
@@ -163,7 +169,7 @@ impl<'mesh> VertexProxy<'mesh> {
 
     pub fn point(&self) -> Option<&'mesh Point> {
         self.data().and_then(|data| {
-            self.mesh.get_element(&data.point)
+            self.mesh.get(data.point)
         })
     }
 }

@@ -1,20 +1,35 @@
 
-use super::data::{Tag, Generation, ElementStatus};
-use super::handles::Handle;
+use std::cell::{Ref, RefMut};
+use crate::handles::{
+    HalfEdgeHandle, FaceHandle,
+};
+use crate::data::{Tag, Generation, Offset, ElementStatus};
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
     fn is_valid(&self) -> bool;
 }
 
-/// Marker trait for structs holding element specific data
-pub trait ElementData {}
+pub trait Element: Default + Clone + Storable {
+    type Data: ElementData;
+    type Handle: ElementHandle;
+
+    fn with_data(data: Self::Data) -> Self;
+
+    fn data(&self) -> Ref<Self::Data>;
+    fn data_mut(&self) -> RefMut<Self::Data>;
+}
+
+pub trait ElementData: Default {}
 
 /// Marker trait for handle types
-pub trait ElementHandle {}
+pub trait ElementHandle: Default + Copy + IsValid {
+    type Element: Element;
 
-pub trait IsActive {
-    fn is_active(&self) -> bool;
+    fn new(offset: Offset) -> Self;
+    fn with_generation(offset: Offset, generation: Generation) -> Self;
+    fn offset(&self) -> Offset;
+    fn generation(&self) -> Generation;
 }
 
 pub trait Taggable {
@@ -27,19 +42,31 @@ pub trait Storable {
     fn set_generation(&self, generation: Generation);
     fn status(&self) -> ElementStatus;
     fn set_status(&self, status: ElementStatus);
+
+    fn is_active(&self) -> bool {
+        self.status() == ElementStatus::ACTIVE
+    }
 }
 
 /// Interface for adding elements to a `Mesh`.
-pub trait AddElement<E> {
-    fn add_element(&mut self, element: E) -> Handle<E>;
+pub trait AddElement<E> where E: Element {
+    fn add(&mut self, element: E) -> E::Handle;
 }
 
 /// Interface for removing elements to a `Mesh`.
-pub trait RemoveElement<E> {
-    fn remove_element(&mut self, index: Handle<E>);
+pub trait RemoveElement<H> where H: ElementHandle {
+    fn remove(&mut self, handle: H);
 }
 
 /// Interface for getting an element reference.
-pub trait GetElement<E> {
-    fn get_element(&self, index: &Handle<E>) -> Option<&E>;
+pub trait GetElement<H> where H: ElementHandle {
+    fn get(&self, handle: H) -> Option<&<H as ElementHandle>::Element>;
+}
+
+pub trait MakeEdgePair<A> {
+    fn make_edge_pair(&mut self, args: A) -> HalfEdgeHandle;
+}
+
+pub trait AddFace<A> {
+    fn add_face(&mut self, args: A) -> FaceHandle;
 }

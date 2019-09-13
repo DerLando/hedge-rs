@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use std::hash::{Hash, Hasher};
 use std::cmp;
 
-use super::traits::IsValid;
-use super::data::{Offset, Generation};
+use crate::traits::{IsValid, ElementHandle, Element};
+use crate::data::{Offset, Generation};
+use crate::elements::{HalfEdge, Face, Vertex, Point};
 
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_OFFSET: Offset = std::u32::MAX;
@@ -12,8 +13,8 @@ pub const INVALID_COMPONENT_OFFSET: Offset = std::u32::MAX;
 /// Type-safe index into kernel storage.
 #[derive(Debug, Clone, Eq)]
 pub struct Handle<T> {
-    pub offset: Offset,
-    pub generation: Generation,
+    offset: Offset,
+    generation: Generation,
     _marker: PhantomData<T>,
 }
 
@@ -36,8 +37,10 @@ impl<T> Hash for Handle<T> {
     }
 }
 
-impl<T> Handle<T> {
-    pub fn new(offset: Offset) -> Handle<T> {
+impl<T: Element> ElementHandle for Handle<T> {
+    type Element = T;
+
+    fn new(offset: Offset) -> Self {
         Handle {
             offset,
             generation: 0,
@@ -45,12 +48,20 @@ impl<T> Handle<T> {
         }
     }
 
-    pub fn with_generation(offset: Offset, generation: Generation) -> Handle<T> {
+    fn with_generation(offset: Offset, generation: Generation) -> Self {
         Handle {
             offset,
             generation,
             _marker: PhantomData::default(),
         }
+    }
+
+    fn offset(&self) -> u32 {
+        self.offset
+    }
+
+    fn generation(&self) -> u32 {
+        self.generation
     }
 }
 
@@ -72,3 +83,8 @@ impl<T> IsValid for Handle<T> {
         self.offset != INVALID_COMPONENT_OFFSET
     }
 }
+
+pub type HalfEdgeHandle = Handle<HalfEdge>;
+pub type FaceHandle = Handle<Face>;
+pub type VertexHandle = Handle<Vertex>;
+pub type PointHandle = Handle<Point>;

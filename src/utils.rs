@@ -1,7 +1,15 @@
 use log::*;
 use crate::mesh::Mesh;
+use crate::handles::{
+    HalfEdgeHandle, FaceHandle,
+    VertexHandle,
+};
+use crate::data::{
+    HalfEdgeData,
+};
 use crate::elements::*;
 use crate::proxy::*;
+use crate::traits::Element;
 
 /// Given two vertex indices, create an adjacent edge pair
 pub fn build_full_edge(
@@ -9,22 +17,24 @@ pub fn build_full_edge(
     v0: VertexHandle,
     v1: VertexHandle
 ) -> HalfEdgeHandle {
-    let e0 = mesh.add_element(
+    let e0: HalfEdgeHandle = mesh.add(
         HalfEdge::with_data(HalfEdgeData {
             vertex: v0,
             ..HalfEdgeData::default()
         }));
 
-    let e1 = mesh.add_element(
+    let e1 = mesh.add(
         HalfEdge::with_data(HalfEdgeData {
             adjacent: e0,
             vertex: v1,
             ..HalfEdgeData::default()
         }));
 
-    mesh.get_element(&e0).map(|e| e.data_mut().adjacent = e1);
-    mesh.get_element(&v0).map(|e| e.data_mut().edge = e0);
-    mesh.get_element(&v1).map(|e| e.data_mut().edge = e1);
+    if let Some(edge) = mesh.get(e0) {
+        edge.data_mut().adjacent = e1;
+    }
+    mesh.get(v0).map(|e| e.data_mut().edge = e0);
+    mesh.get(v1).map(|e| e.data_mut().edge = e1);
 
     return e0;
 }
@@ -34,7 +44,7 @@ pub fn build_half_edge(
     adjacent: HalfEdgeHandle,
     vertex: VertexHandle,
 ) -> HalfEdgeHandle {
-    let e0 = mesh.add_element(
+    let e0 = mesh.add(
         HalfEdge::with_data(HalfEdgeData {
             vertex,
             adjacent,
@@ -42,8 +52,8 @@ pub fn build_half_edge(
         })
     );
 
-    mesh.get_element(&adjacent).map(|e| e.data_mut().adjacent = e0);
-    mesh.get_element(&vertex).map(|v| v.data_mut().edge = e0);
+    mesh.get(adjacent).map(|e| e.data_mut().adjacent = e0);
+    mesh.get(vertex).map(|v| v.data_mut().edge = e0);
 
     return e0;
 }
@@ -53,8 +63,8 @@ pub fn assoc_vert_edge(
     vert: VertexHandle,
     edge: HalfEdgeHandle
 ) {
-    mesh.get_element(&vert).map(|v| v.data_mut().edge = edge);
-    mesh.get_element(&edge).map(|e| e.data_mut().vertex = vert);
+    mesh.get(vert).map(|v| v.data_mut().edge = edge);
+    mesh.get(edge).map(|e| e.data_mut().vertex = vert);
 }
 
 /// Given an edge index, and a vertex index, creates a new edge connected to the specified edge
@@ -96,8 +106,8 @@ pub fn connect_edges(
     prev: HalfEdgeHandle,
     next: HalfEdgeHandle
 ) {
-    mesh.get_element(&prev).map(|e| e.data_mut().next = next);
-    mesh.get_element(&next).map(|e| e.data_mut().prev = prev);
+    mesh.get(prev).map(|e| e.data_mut().next = next);
+    mesh.get(next).map(|e| e.data_mut().prev = prev);
 }
 
 pub fn assign_face_to_loop(

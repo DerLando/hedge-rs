@@ -141,19 +141,19 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add_element(Vertex::at_point(p0));
-        let v1 = mesh.add_element(Vertex::at_point(p1));
-        let v2 = mesh.add_element(Vertex::at_point(p2));
+        let v0 = mesh.add(Vertex::at_point(p0));
+        let v1 = mesh.add(Vertex::at_point(p1));
+        let v2 = mesh.add(Vertex::at_point(p2));
 
         let e0 = utils::build_full_edge(&mut mesh, v0, v1);
         let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
         let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
 
-        let f0 = mesh.add_element(Face::default());
+        let f0 = mesh.add(Face::default());
         utils::assign_face_to_loop(&mesh, e0, f0);
 
         let mut iter_count = 0;
@@ -177,19 +177,19 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add_element(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add_element(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add_element(Vertex::at_point(p0));
-        let v1 = mesh.add_element(Vertex::at_point(p1));
-        let v2 = mesh.add_element(Vertex::at_point(p2));
+        let v0 = mesh.add(Vertex::at_point(p0));
+        let v1 = mesh.add(Vertex::at_point(p1));
+        let v2 = mesh.add(Vertex::at_point(p2));
 
         let e0 = utils::build_full_edge(&mut mesh, v0, v1);
         let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
         let _e2 = utils::close_edge_loop(&mut mesh, e1, e0);
 
-        let f0 = mesh.add_element(Face::default());
+        let f0 = mesh.add(Face::default());
         utils::assign_face_to_loop(&mesh, e0, f0);
 
         let mut iter_count = 0;
@@ -209,50 +209,50 @@ mod tests {
     }
 
     fn build_fan(points: [PointHandle; 5], mesh: &mut Mesh) -> VertexHandle {
-        let v0 = mesh.add_element(Vertex::at_point(points[0]));
-        let v1 = mesh.add_element(Vertex::at_point(points[1]));
-        let v2 = mesh.add_element(Vertex::at_point(points[4]));
+        let v0 = mesh.add(Vertex::at_point(points[0]));
+        let v1 = mesh.add(Vertex::at_point(points[1]));
+        let v2 = mesh.add(Vertex::at_point(points[4]));
 
         let e0 = utils::build_full_edge(mesh, v0, v1);
         let e1 = utils::build_full_edge_from(mesh, e0, v2);
         let e2 = utils::close_edge_loop(mesh, e1, e0);
 
-        let f0 = mesh.add_element(Face::default());
+        let f0 = mesh.add(Face::default());
         utils::assign_face_to_loop(mesh, e0, f0);
 
         /////////////////////////////////
 
-        let v3 = mesh.add_element(Vertex::at_point(points[1]));
-        let _v4 = mesh.add_element(Vertex::at_point(points[2]));
-        let v5 = mesh.add_element(Vertex::at_point(points[4]));
+        let v3 = mesh.add(Vertex::at_point(points[1]));
+        let _v4 = mesh.add(Vertex::at_point(points[2]));
+        let v5 = mesh.add(Vertex::at_point(points[4]));
 
         let e3 = mesh.edge(e1).twin().index;
         utils::assoc_vert_edge(mesh, v5, e3);
         let e4 = utils::build_full_edge_from(mesh, e3, v3);
         let e5 = utils::close_edge_loop(mesh, e4, e3);
 
-        let f1 = mesh.add_element(Face::default());
+        let f1 = mesh.add(Face::default());
         utils::assign_face_to_loop(mesh, e3, f1);
 
         /////////////////////////////////
 
-        let v6 = mesh.add_element(Vertex::at_point(points[2]));
-        let _v7 = mesh.add_element(Vertex::at_point(points[3]));
-        let v8 = mesh.add_element(Vertex::at_point(points[4]));
+        let v6 = mesh.add(Vertex::at_point(points[2]));
+        let _v7 = mesh.add(Vertex::at_point(points[3]));
+        let v8 = mesh.add(Vertex::at_point(points[4]));
 
         let e6 = mesh.edge(e5).twin().index;
         utils::assoc_vert_edge(mesh, v8, e6);
         let e7 = utils::build_full_edge_from(mesh, e6, v6);
         let e8 = utils::close_edge_loop(mesh, e7, e6);
 
-        let f2 = mesh.add_element(Face::default());
+        let f2 = mesh.add(Face::default());
         utils::assign_face_to_loop(mesh, e6, f2);
 
         /////////////////////////////////
 
-        let _v9  = mesh.add_element(Vertex::at_point(points[3]));
-        let _v10 = mesh.add_element(Vertex::at_point(points[0]));
-        let v11 = mesh.add_element(Vertex::at_point(points[4]));
+        let _v9  = mesh.add(Vertex::at_point(points[3]));
+        let _v10 = mesh.add(Vertex::at_point(points[0]));
+        let v11 = mesh.add(Vertex::at_point(points[4]));
 
         let e9 = mesh.edge(e8).twin().index;
         utils::assoc_vert_edge(mesh, v11, e9);
@@ -260,7 +260,7 @@ mod tests {
         utils::assoc_vert_edge(mesh, v0, e11);
         let _e10 = utils::close_edge_loop(mesh, e9, e11);
 
-        let f3 = mesh.add_element(Face::default());
+        let f3 = mesh.add(Face::default());
         utils::assign_face_to_loop(mesh, e9, f3);
 
         return v2;
@@ -272,11 +272,11 @@ mod tests {
         let mut mesh = Mesh::new();
 
         let points = [
-            mesh.add_element(Point::from_coords(-1.0, 0.0, 0.0)),
-            mesh.add_element(Point::from_coords(0.0, -1.0, 0.0)),
-            mesh.add_element(Point::from_coords(1.0, 0.0, 0.0)),
-            mesh.add_element(Point::from_coords(0.0, 1.0, 0.0)),
-            mesh.add_element(Point::from_coords(0.0, 0.0, 0.0)),
+            mesh.add(Point::from_coords(-1.0, 0.0, 0.0)),
+            mesh.add(Point::from_coords(0.0, -1.0, 0.0)),
+            mesh.add(Point::from_coords(1.0, 0.0, 0.0)),
+            mesh.add(Point::from_coords(0.0, 1.0, 0.0)),
+            mesh.add(Point::from_coords(0.0, 0.0, 0.0)),
         ];
 
         let root_vert = build_fan(points, &mut mesh);
