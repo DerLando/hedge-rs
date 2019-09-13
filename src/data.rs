@@ -1,4 +1,5 @@
 
+use nalgebra_glm as glm;
 use crate::traits::ElementData;
 use crate::handles::{
     HalfEdgeHandle, FaceHandle, VertexHandle, PointHandle,
@@ -7,8 +8,8 @@ use crate::handles::{
 pub type Tag = u32;
 pub type Offset = u32;
 pub type Generation = u32;
-pub type Position = [f32; 3];
-pub type Normal = [f32; 3];
+pub type Position = glm::Vec3;
+pub type Normal = glm::Vec3;
 
 /// Whether or not a cell is current or 'removed'
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -63,7 +64,7 @@ impl PointData {
 impl Default for PointData {
     fn default() -> Self {
         PointData {
-            position: [0.0; 3],
+            position: glm::vec3(0.0, 0.0, 0.0),
         }
     }
 }

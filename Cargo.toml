@@ -14,10 +14,11 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-amethyst_assets = {optional=true, version="0.7.0"}
-amethyst_core = {optional=true, version="0.6.0"}
-amethyst_error = {optional=true, version="0.1.0"}
-amethyst_rendy = {optional=true, version="0.1.0"}
+nalgebra-glm = "0.4.2"
+amethyst_assets = {optional=true, version="0.8.0"}
+amethyst_core = {optional=true, version="0.7.0"}
+amethyst_error = {optional=true, version="0.2.0"}
+amethyst_rendy = {optional=true, version="0.2.0"}
 err-derive = {optional=true, version="0.1"}
 
 [dev-dependencies]

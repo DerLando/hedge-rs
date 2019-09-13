@@ -1,5 +1,6 @@
 
 use std::cell::{Cell, RefCell, Ref, RefMut};
+use nalgebra_glm as glm;
 use crate::handles::{
     HalfEdgeHandle, FaceHandle,
     VertexHandle, PointHandle
@@ -166,8 +167,8 @@ impl Face {
 }
 
 impl IsValid for Face {
-    /// A face is considered "valid" as long as it has an edge index
-    /// other than `INVALID_COMPONENT_INDEX`
+    /// A face is considered "valid" when it is 'active' and has a
+    /// valid root_edge.
     fn is_valid(&self) -> bool {
         self.is_active() && self.data().root_edge.is_valid()
     }
@@ -202,16 +203,17 @@ impl Point {
     }
 
     pub fn from_coords(x: f32, y: f32, z: f32) -> Self {
-        Point::with_data(PointData::new([x, y, z]))
+        Point::with_data(PointData::new(glm::vec3(x, y, z)))
     }
 
     pub fn from_slice(offset: usize, values: &[f32]) -> Self {
         assert!(values.len() >= (offset + 3));
-        Point::with_data(PointData::new([
+        let position = glm::vec3(
             values[offset],
             values[offset+1],
-            values[offset+2],
-        ]))
+            values[offset+2]
+        );
+        Point::with_data(PointData::new(position))
     }
 }
 
