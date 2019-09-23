@@ -112,7 +112,11 @@ impl IsValid for HalfEdge {
 pub type Vertex = MeshElement<VertexData>;
 impl Vertex {
     pub fn new(edge: HalfEdgeHandle, point: PointHandle) -> Self {
-        Vertex::with_data(VertexData { edge, point })
+        Vertex::with_data(VertexData {
+            edge,
+            point,
+            ..Default::default()
+        })
     }
 
     pub fn for_edge(edge: HalfEdgeHandle) -> Self {
