@@ -1,4 +1,4 @@
-//! Facades over a mesh and component index to enable fluent adjcency traversals.
+//! Facades over a mesh and element handle to enable easy topology traversals.
 
 use crate::traits::*;
 use crate::handles::{
@@ -62,8 +62,8 @@ impl<'mesh> ElementProxy<'mesh, Face> for FaceProxy<'mesh> {
 
 impl<'mesh> FaceProxy<'mesh> {
     pub fn root_edge(&self) -> HalfEdgeProxy<'mesh> {
-        let edge_index = self.data().map(|data| data.root_edge);
-        HalfEdgeProxy::maybe(edge_index, self.mesh)
+        let edge_handle = self.data().map(|data| data.root_edge);
+        HalfEdgeProxy::maybe(edge_handle, self.mesh)
     }
 
     pub fn edges(&self) -> FaceEdges<'mesh> {

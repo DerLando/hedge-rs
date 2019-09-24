@@ -42,8 +42,8 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
                 if next_edge.is_boundary() {
                     warn!("Vertex circulator terminated due to boundary edge.");
                     None
-                } else if let Some(pindex) = next_edge.vertex().data().map(|d| d.point) {
-                    if pindex == self.central_point {
+                } else if let Some(phnd) = next_edge.vertex().data().map(|d| d.point) {
+                    if phnd == self.central_point {
                         Some(next_edge)
                     } else {
                         debug!("Ending iteration because vertex attributes do not match.");
@@ -159,11 +159,11 @@ mod tests {
         let mut iter_count = 0;
         for edge in mesh.face(f0).edges() {
             assert!(iter_count < 3);
-            if edge.index == e0 {
+            if edge.handle == e0 {
                 iter_count += 1;
-            } else if edge.index == e1 {
+            } else if edge.handle == e1 {
                 iter_count += 1;
-            } else if edge.index == e2 {
+            } else if edge.handle == e2 {
                 iter_count += 1;
             } else {
                 unreachable!();
@@ -195,11 +195,11 @@ mod tests {
         let mut iter_count = 0;
         for vert in mesh.face(f0).vertices() {
             assert!(iter_count < 3);
-            if vert.index == v0 {
+            if vert.handle == v0 {
                 iter_count += 1;
-            } else if vert.index == v1 {
+            } else if vert.handle == v1 {
                 iter_count += 1;
-            } else if vert.index == v2 {
+            } else if vert.handle == v2 {
                 iter_count += 1;
             } else {
                 unreachable!();
@@ -226,7 +226,7 @@ mod tests {
         let _v4 = mesh.add(Vertex::at_point(points[2]));
         let v5 = mesh.add(Vertex::at_point(points[4]));
 
-        let e3 = mesh.edge(e1).twin().index;
+        let e3 = mesh.edge(e1).adjacent().handle;
         utils::assoc_vert_edge(mesh, v5, e3);
         let e4 = utils::build_full_edge_from(mesh, e3, v3);
         let e5 = utils::close_edge_loop(mesh, e4, e3);
@@ -240,7 +240,7 @@ mod tests {
         let _v7 = mesh.add(Vertex::at_point(points[3]));
         let v8 = mesh.add(Vertex::at_point(points[4]));
 
-        let e6 = mesh.edge(e5).twin().index;
+        let e6 = mesh.edge(e5).adjacent().handle;
         utils::assoc_vert_edge(mesh, v8, e6);
         let e7 = utils::build_full_edge_from(mesh, e6, v6);
         let e8 = utils::close_edge_loop(mesh, e7, e6);
@@ -254,9 +254,9 @@ mod tests {
         let _v10 = mesh.add(Vertex::at_point(points[0]));
         let v11 = mesh.add(Vertex::at_point(points[4]));
 
-        let e9 = mesh.edge(e8).twin().index;
+        let e9 = mesh.edge(e8).adjacent().handle;
         utils::assoc_vert_edge(mesh, v11, e9);
-        let e11 = mesh.edge(e2).twin().index;
+        let e11 = mesh.edge(e2).adjacent().handle;
         utils::assoc_vert_edge(mesh, v0, e11);
         let _e10 = utils::close_edge_loop(mesh, e9, e11);
 

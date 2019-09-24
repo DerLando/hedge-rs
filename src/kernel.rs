@@ -4,7 +4,7 @@ use std::fmt;
 use std::iter::Enumerate;
 use std::slice::Iter;
 
-use crate::data::{ElementStatus, Offset};
+use crate::data::{ElementStatus, Index};
 use crate::elements::{Face, HalfEdge, Point, Vertex};
 use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
 use crate::traits::{
@@ -80,9 +80,9 @@ impl<E: Element> ElementBuffer<E> {
         }
     }
 
-    fn ensure_matching_generation(element: &E, index: E::Handle) -> Option<&E> {
-        if index.generation() > 0 {
-            if element.generation() == index.generation() {
+    fn ensure_matching_generation(element: &E, handle: E::Handle) -> Option<&E> {
+        if handle.generation() > 0 {
+            if element.generation() == handle.generation() {
                 Some(element)
             } else {
                 None
@@ -92,37 +92,37 @@ impl<E: Element> ElementBuffer<E> {
         }
     }
 
-    pub fn get(&self, index: E::Handle) -> Option<&E> {
-        if index.is_valid() {
+    pub fn get(&self, handle: E::Handle) -> Option<&E> {
+        if handle.is_valid() {
             self.buffer
-                .get(index.offset() as usize)
+                .get(handle.index() as usize)
                 .and_then(ElementBuffer::ensure_active_cell)
-                .and_then(|e| ElementBuffer::ensure_matching_generation(e, index))
+                .and_then(|e| ElementBuffer::ensure_matching_generation(e, handle))
         } else {
             None
         }
     }
 
     pub fn add(&mut self, element: E) -> E::Handle {
-        if let Some(index) = self.free_cells.pop() {
-            let cell = &mut self.buffer[index.offset() as usize];
+        if let Some(handle) = self.free_cells.pop() {
+            let cell = &mut self.buffer[handle.index() as usize];
             *cell = element;
             cell.set_status(ElementStatus::ACTIVE);
-            cell.set_generation(index.generation());
-            return index;
+            cell.set_generation(handle.generation());
+            return handle;
         } else {
-            let index = E::Handle::with_generation(self.buffer.len() as u32, element.generation());
+            let handle = E::Handle::with_generation(self.buffer.len() as u32, element.generation());
             self.buffer.push(element);
-            if let Some(element) = self.buffer.get_mut(index.offset() as usize) {
+            if let Some(element) = self.buffer.get_mut(handle.index() as usize) {
                 element.set_status(ElementStatus::ACTIVE);
             }
-            return index;
+            return handle;
         }
     }
 
-    pub fn remove(&mut self, index: E::Handle) {
-        if let Some(cell) = self.get(index) {
-            let removed_index = {
+    pub fn remove(&mut self, handle: E::Handle) {
+        if let Some(cell) = self.get(handle) {
+            let removed_handle = {
                 let next_gen = cell.generation() + 1;
                 if next_gen == u32::max_value() {
                     cell.set_generation(1);
@@ -130,9 +130,9 @@ impl<E: Element> ElementBuffer<E> {
                     cell.set_generation(next_gen);
                 }
                 cell.set_status(ElementStatus::INACTIVE);
-                E::Handle::with_generation(index.offset(), cell.generation())
+                E::Handle::with_generation(handle.index(), cell.generation())
             };
-            self.free_cells.push(removed_index);
+            self.free_cells.push(removed_handle);
         }
     }
 
@@ -144,7 +144,7 @@ impl<E: Element> ElementBuffer<E> {
         self.buffer.truncate(active);
     }
 
-    fn next_swap_pair(&self) -> Option<(Offset, Offset)> {
+    fn next_swap_pair(&self) -> Option<(Index, Index)> {
         let inactive_offset = self.enumerate().find(|e| !e.1.is_active()).map(|e| e.0);
         let active_offset = self
             .enumerate()
@@ -195,34 +195,34 @@ impl Kernel {
                         face,
                     )
                 })
-                .filter(|(index, face)| {
-                    let root_edge_index = face.data().root_edge;
-                    if let Some(root_edge) = self.edge_buffer.get(root_edge_index) {
-                        let root_face_index = root_edge.data().face;
-                        *index != root_face_index
+                .filter(|(hnd, face)| {
+                    let root_edge_handle = face.data().root_edge;
+                    if let Some(root_edge) = self.edge_buffer.get(root_edge_handle) {
+                        let root_face_handle = root_edge.data().face;
+                        *hnd != root_face_handle
                     } else {
                         warn!(
                             "The root edge of the face at {:?} points to invalid edge.",
-                            root_edge_index
+                            root_edge_handle
                         );
                         false
                     }
                 })
-                .for_each(|(face_index, face)| {
-                    let root_edge_index = face.data().root_edge;
-                    let mut edge_index = root_edge_index;
+                .for_each(|(face_handle, face)| {
+                    let root_edge_handle = face.data().root_edge;
+                    let mut edge_handle = root_edge_handle;
                     loop {
-                        let edge = &self.edge_buffer.buffer[edge_index.offset() as usize];
+                        let edge = &self.edge_buffer.buffer[edge_handle.index() as usize];
 
                         let mut data = edge.data_mut();
                         // prevent an infinite loop for broken meshes
-                        if data.face == face_index {
+                        if data.face == face_handle {
                             break;
                         }
-                        data.face = face_index;
+                        data.face = face_handle;
 
-                        edge_index = data.next;
-                        if edge_index == root_edge_index {
+                        edge_handle = data.next;
+                        if edge_handle == root_edge_handle {
                             break;
                         }
                     }
@@ -242,21 +242,21 @@ impl Kernel {
                         vertex,
                     )
                 })
-                .filter(|(vert_index, vertex)| {
-                    let vert_edge_index = vertex.data().edge;
-                    if let Some(edge) = self.edge_buffer.get(vert_edge_index) {
-                        *vert_index != edge.data().vertex
+                .filter(|(vert_handle, vertex)| {
+                    let vert_edge_handle = vertex.data().edge;
+                    if let Some(edge) = self.edge_buffer.get(vert_edge_handle) {
+                        *vert_handle != edge.data().vertex
                     } else {
-                        warn!("Vertex at {:?} has an invalid edge index.", vert_index);
+                        warn!("Vertex at {:?} has an invalid edge index.", vert_handle);
                         false
                     }
                 })
-                .for_each(|(vertex_index, vertex)| {
+                .for_each(|(vertex_handle, vertex)| {
                     let e0 = {
-                        let eindex = vertex.data().edge;
-                        &self.edge_buffer.buffer[eindex.offset() as usize]
+                        let edge_handle = vertex.data().edge;
+                        &self.edge_buffer.buffer[edge_handle.index() as usize]
                     };
-                    e0.data_mut().vertex = vertex_index;
+                    e0.data_mut().vertex = vertex_handle;
                 });
             self.vertex_buffer.truncate_inactive();
         }
@@ -272,46 +272,46 @@ impl Kernel {
             // buffer with first inactive cell from the front
             // of the buffer.
             loop {
-                if let Some(offsets) = self.edge_buffer.next_swap_pair() {
-                    let inactive_offset = offsets.0;
-                    let active_offset = offsets.1;
+                if let Some(indices) = self.edge_buffer.next_swap_pair() {
+                    let inactive_handle = indices.0;
+                    let active_handle = indices.1;
 
                     self.edge_buffer
                         .buffer
-                        .swap(inactive_offset as usize, active_offset as usize);
-                    let swapped = &self.edge_buffer.buffer[inactive_offset as usize];
+                        .swap(inactive_handle as usize, active_handle as usize);
+                    let swapped = &self.edge_buffer.buffer[inactive_handle as usize];
                     let swapped_data = swapped.data();
-                    let swapped_index = <HalfEdge as Element>::Handle::with_generation(
-                        inactive_offset as u32,
+                    let swapped_handle = <HalfEdge as Element>::Handle::with_generation(
+                        inactive_handle as u32,
                         swapped.generation(),
                     );
 
                     if let Some(next_edge) = self.edge_buffer.get(swapped_data.next) {
-                        next_edge.data_mut().prev = swapped_index;
+                        next_edge.data_mut().prev = swapped_handle;
                     }
                     if let Some(prev_edge) = self.edge_buffer.get(swapped_data.prev) {
-                        prev_edge.data_mut().next = swapped_index;
+                        prev_edge.data_mut().next = swapped_handle;
                     }
                     if let Some(twin_edge) = self.edge_buffer.get(swapped_data.adjacent) {
-                        twin_edge.data_mut().adjacent = swapped_index;
+                        twin_edge.data_mut().adjacent = swapped_handle;
                     }
 
                     // For faces and vertices we only want to update the
-                    // associated edge index when it matched the original
+                    // associated edge handle when it matched the original
                     // buffer location.
                     // I'm doing this in case the associated root edge
-                    // index for these elements is meaningful or important.
+                    // handle for these elements is meaningful or important.
 
                     if let Some(face) = self.face_buffer.get(swapped_data.face) {
                         let mut face_data = face.data_mut();
-                        if face_data.root_edge.offset() == active_offset {
-                            face_data.root_edge = swapped_index;
+                        if face_data.root_edge.index() == active_handle {
+                            face_data.root_edge = swapped_handle;
                         }
                     }
                     if let Some(vertex) = self.vertex_buffer.get(swapped_data.vertex) {
                         let mut vertex_data = vertex.data_mut();
-                        if vertex_data.edge.offset() == active_offset {
-                            vertex_data.edge = swapped_index;
+                        if vertex_data.edge.index() == active_handle {
+                            vertex_data.edge = swapped_handle;
                         }
                     }
                 } else {
@@ -342,16 +342,16 @@ impl Kernel {
                         .buffer
                         .swap(inactive_offset as usize, active_offset as usize);
                     let swapped = &self.point_buffer.buffer[inactive_offset as usize];
-                    let swapped_index = <Point as Element>::Handle::with_generation(
+                    let swapped_handle = <Point as Element>::Handle::with_generation(
                         inactive_offset as u32,
                         swapped.generation(),
                     );
 
                     self.vertex_buffer.buffer[1..]
                         .iter()
-                        .filter(|v| v.is_active() && v.data().point.offset() == active_offset)
+                        .filter(|v| v.is_active() && v.data().point.index() == active_offset)
                         .for_each(|v| {
-                            v.data_mut().point = swapped_index;
+                            v.data_mut().point = swapped_handle;
                         });
                 } else {
                     break;
@@ -473,37 +473,37 @@ mod tests {
                 edge0.data_mut().adjacent = e1;
                 edge1.data_mut().adjacent = e0;
             }
-            _ => panic!("Invalid edge indexes specified: {:?}, {:?}", e0, e1),
+            _ => panic!("Invalid edge handles specified: {:?}, {:?}", e0, e1),
         }
         e0
     }
 
-    fn make_twin_edge(kernel: &mut Kernel, twin_index: HalfEdgeHandle) -> HalfEdgeHandle {
+    fn make_twin_edge(kernel: &mut Kernel, twin_handle: HalfEdgeHandle) -> HalfEdgeHandle {
         let e0 = kernel.add(HalfEdge::with_data(HalfEdgeData {
-            adjacent: twin_index,
+            adjacent: twin_handle,
             ..HalfEdgeData::default()
         }));
-        kernel.edge_buffer.buffer[twin_index.offset() as usize]
+        kernel.edge_buffer.buffer[twin_handle.index() as usize]
             .data_mut()
             .adjacent = e0;
         e0
     }
 
-    fn get_twin(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
-        kernel.edge_buffer.buffer[edge_index.offset() as usize]
+    fn get_twin(kernel: &Kernel, edge_handle: HalfEdgeHandle) -> HalfEdgeHandle {
+        kernel.edge_buffer.buffer[edge_handle.index() as usize]
             .data()
             .adjacent
     }
 
-    fn get_next(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
-        kernel.edge_buffer.buffer[edge_index.offset() as usize]
+    fn get_next(kernel: &Kernel, edge_handle: HalfEdgeHandle) -> HalfEdgeHandle {
+        kernel.edge_buffer.buffer[edge_handle.index() as usize]
             .data()
             .next
     }
 
     #[allow(dead_code)]
-    fn get_prev(kernel: &Kernel, edge_index: HalfEdgeHandle) -> HalfEdgeHandle {
-        kernel.edge_buffer.buffer[edge_index.offset() as usize]
+    fn get_prev(kernel: &Kernel, edge_handle: HalfEdgeHandle) -> HalfEdgeHandle {
+        kernel.edge_buffer.buffer[edge_handle.index() as usize]
             .data()
             .prev
     }
@@ -521,37 +521,37 @@ mod tests {
                 next.data_mut().vertex = v0;
             }
             _ => panic!(
-                "Invalid edge indexes specified: {:?}, {:?}",
+                "Invalid edge handles specified: {:?}, {:?}",
                 prev_handle, next_handle
             ),
         }
         v0
     }
 
-    fn set_face_to_loop(kernel: &Kernel, root_edge: HalfEdgeHandle, face_index: FaceHandle) {
-        let face = kernel.face_buffer.get(face_index).unwrap();
+    fn set_face_to_loop(kernel: &Kernel, root_edge: HalfEdgeHandle, face_handle: FaceHandle) {
+        let face = kernel.face_buffer.get(face_handle).unwrap();
         face.data_mut().root_edge = root_edge;
-        let mut edge_index = root_edge;
+        let mut edge_handle = root_edge;
         loop {
-            let edge = &kernel.edge_buffer.buffer[edge_index.offset() as usize];
+            let edge = &kernel.edge_buffer.buffer[edge_handle.index() as usize];
             let mut data = edge.data_mut();
-            if data.face == face_index {
+            if data.face == face_handle {
                 break;
             }
-            data.face = face_index;
+            data.face = face_handle;
             if data.next == root_edge {
                 break;
             }
-            edge_index = data.next;
+            edge_handle = data.next;
         }
     }
 
     fn make_face(kernel: &mut Kernel, root_edge: HalfEdgeHandle) -> FaceHandle {
-        let face_index = kernel.add(Face::with_data(FaceData {
+        let face_handle = kernel.add(Face::with_data(FaceData {
             root_edge,
         }));
-        set_face_to_loop(kernel, root_edge, face_index);
-        face_index
+        set_face_to_loop(kernel, root_edge, face_handle);
+        face_handle
     }
 
     fn make_triangle(kernel: &mut Kernel) -> FaceHandle {
@@ -572,14 +572,14 @@ mod tests {
         let mut kernel = Kernel::default();
 
         let f0 = make_triangle(&mut kernel);
-        let root_edge = kernel.face_buffer.buffer[f0.offset() as usize]
+        let root_edge = kernel.face_buffer.buffer[f0.index() as usize]
             .data()
             .root_edge;
 
         let f1 = make_face(&mut kernel, root_edge);
         let f2 = make_face(&mut kernel, root_edge);
         assert_eq!(kernel.face_buffer.len(), 4);
-        assert_eq!(f2.offset(), 3);
+        assert_eq!(f2.index(), 3);
         assert_eq!(f2.generation(), 1);
 
         kernel.remove(f0);
@@ -589,10 +589,10 @@ mod tests {
         assert_eq!(kernel.face_buffer.len(), 2);
         assert_eq!(kernel.face_buffer.free_cells.len(), 2);
 
-        let root_face_index = kernel.edge_buffer.buffer[root_edge.offset() as usize]
+        let root_face_handle = kernel.edge_buffer.buffer[root_edge.index() as usize]
             .data()
             .face;
-        assert_eq!(root_face_index, f2);
+        assert_eq!(root_face_handle, f2);
 
         kernel.defrag_faces();
         assert_eq!(kernel.face_buffer.len(), 2);
@@ -600,15 +600,15 @@ mod tests {
         assert!(!kernel.face_buffer.has_inactive_cells());
         assert!(kernel.get(f2).is_none());
 
-        let root_face_index = kernel.edge_buffer.buffer[root_edge.offset() as usize]
+        let root_face_handle = kernel.edge_buffer.buffer[root_edge.index() as usize]
             .data()
             .face;
-        assert_ne!(root_face_index, f2);
-        assert!(kernel.get(root_face_index).is_some());
-        let face_edge_index = kernel.face_buffer.buffer[root_face_index.offset() as usize]
+        assert_ne!(root_face_handle, f2);
+        assert!(kernel.get(root_face_handle).is_some());
+        let face_edge_handle = kernel.face_buffer.buffer[root_face_handle.index() as usize]
             .data()
             .root_edge;
-        assert_eq!(face_edge_index, root_edge);
+        assert_eq!(face_edge_handle, root_edge);
     }
 
     #[test]
@@ -710,14 +710,14 @@ mod tests {
         assert_eq!(kernel.active_element_count(), 35);
         assert_eq!(kernel.inactive_element_count(), 3);
 
-        let face0 = &kernel.face_buffer.buffer[f0.offset() as usize];
+        let face0 = &kernel.face_buffer.buffer[f0.index() as usize];
         let f0e0 = face0.data().root_edge;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
         assert_eq!(f0e0, get_next(&kernel, f0e2));
-        assert_eq!(13, f0e0.offset());
-        assert_eq!(14, f0e1.offset());
-        assert_eq!(15, f0e2.offset());
+        assert_eq!(13, f0e0.index());
+        assert_eq!(14, f0e1.index());
+        assert_eq!(15, f0e2.index());
 
         kernel.defrag_edges();
         assert_eq!(kernel.active_element_count(), 35);
@@ -727,14 +727,14 @@ mod tests {
         // we expect the offsets for the edges of f0
         // to be at the head of the edge buffer again
         // and basically reversed.
-        let face0 = &kernel.face_buffer.buffer[f0.offset() as usize];
+        let face0 = &kernel.face_buffer.buffer[f0.index() as usize];
         let f0e0 = face0.data().root_edge;
         let f0e1 = get_next(&kernel, f0e0);
         let f0e2 = get_next(&kernel, f0e1);
         assert_eq!(f0e0, get_next(&kernel, f0e2));
-        assert_eq!(5, f0e0.offset());
-        assert_eq!(3, f0e1.offset());
-        assert_eq!(1, f0e2.offset());
+        assert_eq!(5, f0e0.index());
+        assert_eq!(3, f0e1.index());
+        assert_eq!(1, f0e2.index());
     }
 
     #[test]
@@ -765,31 +765,31 @@ mod tests {
         }));
 
         assert_eq!(
-            kernel.vertex_buffer.buffer[v0.offset() as usize]
+            kernel.vertex_buffer.buffer[v0.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             2
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v1.offset() as usize]
+            kernel.vertex_buffer.buffer[v1.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             2
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v2.offset() as usize]
+            kernel.vertex_buffer.buffer[v2.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             4
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v3.offset() as usize]
+            kernel.vertex_buffer.buffer[v3.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             4
         );
 
@@ -798,31 +798,31 @@ mod tests {
         kernel.defrag_points();
 
         assert_eq!(
-            kernel.vertex_buffer.buffer[v0.offset() as usize]
+            kernel.vertex_buffer.buffer[v0.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             2
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v1.offset() as usize]
+            kernel.vertex_buffer.buffer[v1.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             2
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v2.offset() as usize]
+            kernel.vertex_buffer.buffer[v2.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             1
         );
         assert_eq!(
-            kernel.vertex_buffer.buffer[v3.offset() as usize]
+            kernel.vertex_buffer.buffer[v3.index() as usize]
                 .data()
                 .point
-                .offset(),
+                .index(),
             1
         );
     }

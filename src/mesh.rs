@@ -41,9 +41,9 @@ impl Mesh {
         self.tag.fetch_add(1, atomic::Ordering::SeqCst)
     }
 
-    /// Returns a `FaceProxy` for the given index.
-    pub fn face(&self, index: FaceHandle) -> FaceProxy {
-        FaceProxy::new(index, &self)
+    /// Returns a `FaceProxy` for the given handle.
+    pub fn face(&self, handle: FaceHandle) -> FaceProxy {
+        FaceProxy::new(handle, &self)
     }
 
     pub fn face_count(&self) -> usize {
@@ -52,14 +52,14 @@ impl Mesh {
 
     pub fn faces(&self) -> impl Iterator<Item=FaceProxy> {
         self.kernel.face_buffer.active_cells()
-            .map(move |(index, _)| {
-                FaceProxy::new(FaceHandle::new(index as u32), self)
+            .map(move |(handle, _)| {
+                FaceProxy::new(FaceHandle::new(handle as u32), self)
             })
     }
 
-    /// Returns an `EdgeProxy` for the given index.
-    pub fn edge(&self, index: HalfEdgeHandle) -> HalfEdgeProxy {
-        HalfEdgeProxy::new(index, &self)
+    /// Returns an `EdgeProxy` for the given handle.
+    pub fn edge(&self, handle: HalfEdgeHandle) -> HalfEdgeProxy {
+        HalfEdgeProxy::new(handle, &self)
     }
 
     pub fn edge_count(&self) -> usize {
@@ -73,9 +73,9 @@ impl Mesh {
             })
     }
 
-    /// Returns a `VertexProxy` for the given index.
-    pub fn vertex(&self, index: VertexHandle) -> VertexProxy {
-        VertexProxy::new(index, &self)
+    /// Returns a `VertexProxy` for the given handle.
+    pub fn vertex(&self, handle: VertexHandle) -> VertexProxy {
+        VertexProxy::new(handle, &self)
     }
 
     pub fn vertex_count(&self) -> usize {
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn index_types_are_invalid_by_default() {
+    fn handle_types_are_invalid_by_default() {
         let vert = HalfEdgeHandle::default();
         assert!(!vert.is_valid());
 
@@ -188,13 +188,13 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let pindex = {
+        let phnd = {
             let point = Point::default();
             assert_eq!(point.is_valid(), false);
             mesh.add(point)
         };
 
-        assert_eq!(mesh.get(pindex).is_some(), true);
+        assert_eq!(mesh.get(phnd).is_some(), true);
     }
 
     #[test]
@@ -290,17 +290,17 @@ mod tests {
         assert!(mesh.edge(e0).is_boundary());
         assert!(mesh.edge(e1).is_boundary());
         assert!(mesh.edge(e2).is_boundary());
-        assert_eq!(mesh.edge(e0).face().index, f0);
-        assert_eq!(mesh.edge(e1).face().index, f0);
-        assert_eq!(mesh.edge(e2).face().index, f0);
+        assert_eq!(mesh.edge(e0).face().handle, f0);
+        assert_eq!(mesh.edge(e1).face().handle, f0);
+        assert_eq!(mesh.edge(e2).face().handle, f0);
 
-        assert_eq!(mesh.edge(e0).vertex().index, v0);
-        assert_eq!(mesh.edge(e1).vertex().index, v1);
-        assert_eq!(mesh.edge(e2).vertex().index, v2);
+        assert_eq!(mesh.edge(e0).vertex().handle, v0);
+        assert_eq!(mesh.edge(e1).vertex().handle, v1);
+        assert_eq!(mesh.edge(e2).vertex().handle, v2);
 
-        assert_eq!(mesh.edge(e0).twin().vertex().index, v1);
-        assert_eq!(mesh.edge(e1).twin().vertex().index, v2);
-        assert_eq!(mesh.edge(e2).twin().vertex().index, v0);
+        assert_eq!(mesh.edge(e0).adjacent().vertex().handle, v1);
+        assert_eq!(mesh.edge(e1).adjacent().vertex().handle, v2);
+        assert_eq!(mesh.edge(e2).adjacent().vertex().handle, v0);
     }
 
     #[test]
@@ -339,7 +339,7 @@ mod tests {
 
         for vert in mesh.vertices() {
             assert!(vert.is_valid());
-            assert_ne!(vert.edge().index.offset(), 4);
+            assert_ne!(vert.edge().handle.index(), 4);
             vertices_iterated_over += 1;
         }
 

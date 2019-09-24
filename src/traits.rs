@@ -3,7 +3,7 @@ use std::cell::{Ref, RefMut};
 use crate::handles::{
     HalfEdgeHandle, FaceHandle,
 };
-use crate::data::{Tag, Generation, Offset, ElementStatus};
+use crate::data::{Tag, Generation, Index, ElementStatus};
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
@@ -26,9 +26,9 @@ pub trait ElementData: Default {}
 pub trait ElementHandle: Default + Copy + IsValid {
     type Element: Element;
 
-    fn new(offset: Offset) -> Self;
-    fn with_generation(offset: Offset, generation: Generation) -> Self;
-    fn offset(&self) -> Offset;
+    fn new(index: Index) -> Self;
+    fn with_generation(index: Index, generation: Generation) -> Self;
+    fn index(&self) -> Index;
     fn generation(&self) -> Generation;
 }
 

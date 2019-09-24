@@ -4,16 +4,19 @@ use std::hash::{Hash, Hasher};
 use std::cmp;
 
 use crate::traits::{IsValid, ElementHandle, Element};
-use crate::data::{Offset, Generation};
+use crate::data::{Index, Generation};
 use crate::elements::{HalfEdge, Face, Vertex, Point};
 
 /// Our default value for uninitialized or unconnected components in the mesh.
-pub const INVALID_COMPONENT_OFFSET: Offset = std::u32::MAX;
+pub const INVALID_COMPONENT_INDEX: Index = std::u32::MAX;
+
+/// Handles with this generation value will only have their index considered.
+pub const IGNORED_GENERATION: Generation = 0;
 
 /// Type-safe index into kernel storage.
 #[derive(Debug, Clone, Eq)]
 pub struct Handle<T> {
-    offset: Offset,
+    index: Index,
     generation: Generation,
     _marker: PhantomData<T>,
 }
@@ -23,8 +26,8 @@ impl<T: Clone> Copy for Handle<T> {}
 impl<T> Default for Handle<T> {
     fn default() -> Self {
         Handle {
-            offset: INVALID_COMPONENT_OFFSET,
-            generation: 0,
+            index: INVALID_COMPONENT_INDEX,
+            generation: IGNORED_GENERATION,
             _marker: Default::default(),
         }
     }
@@ -32,32 +35,33 @@ impl<T> Default for Handle<T> {
 
 impl<T> Hash for Handle<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.offset.hash(state);
-        self.generation.hash(state);
+        self.index.hash(state);
+        //self.generation.hash(state);
     }
 }
 
 impl<T: Element> ElementHandle for Handle<T> {
     type Element = T;
 
-    fn new(offset: Offset) -> Self {
+    fn new(index: Index) -> Self {
         Handle {
-            offset,
+            index,
             generation: 0,
             _marker: PhantomData::default(),
         }
     }
 
-    fn with_generation(offset: Offset, generation: Generation) -> Self {
+
+    fn with_generation(index: Index, generation: Generation) -> Self {
         Handle {
-            offset,
+            index,
             generation,
             _marker: PhantomData::default(),
         }
     }
 
-    fn offset(&self) -> u32 {
-        self.offset
+    fn index(&self) -> u32 {
+        self.index
     }
 
     fn generation(&self) -> u32 {
@@ -67,20 +71,25 @@ impl<T: Element> ElementHandle for Handle<T> {
 
 impl<T> PartialOrd for Handle<T> {
     fn partial_cmp(&self, other: &Handle<T>) -> Option<cmp::Ordering> {
-        // Only the offset should matter when it comes to ordering
-        self.offset.partial_cmp(&other.offset)
+        // Only the index should matter when it comes to ordering
+        self.index.partial_cmp(&other.index)
     }
 }
 
 impl<T> PartialEq for Handle<T> {
     fn eq(&self, other: &Handle<T>) -> bool {
-        self.offset.eq(&other.offset) && self.generation.eq(&other.generation)
+        if self.generation == IGNORED_GENERATION {
+            self.index.eq(&other.index)
+        } else {
+            self.index.eq(&other.index) &&
+                self.generation.eq(&other.generation)
+        }
     }
 }
 
 impl<T> IsValid for Handle<T> {
     fn is_valid(&self) -> bool {
-        self.offset != INVALID_COMPONENT_OFFSET
+        self.index != INVALID_COMPONENT_INDEX
     }
 }
 

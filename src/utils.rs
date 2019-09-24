@@ -112,14 +112,14 @@ pub fn connect_edges(
 
 pub fn assign_face_to_loop(
     mesh: &Mesh,
-    root_edge_index: HalfEdgeHandle,
-    face_index: FaceHandle
+    root_edge_handle: HalfEdgeHandle,
+    face_handle: FaceHandle
 ) {
-    let face = mesh.face(face_index);
+    let face = mesh.face(face_handle);
     if let Some(mut data) = face.data_mut() {
-        data.root_edge = root_edge_index;
+        data.root_edge = root_edge_handle;
     } else {
-        error!("Invalid face index specified: {:?}", face_index);
+        error!("Invalid face index specified: {:?}", face_handle);
         return;
     }
     let mut edge = face.root_edge();
@@ -129,7 +129,7 @@ pub fn assign_face_to_loop(
                 break;
             }
             data.face = face.handle;
-            if data.next == root_edge_index {
+            if data.next == root_edge_handle {
                 break;
             }
         } else {

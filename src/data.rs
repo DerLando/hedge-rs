@@ -6,7 +6,7 @@ use crate::handles::{
 };
 
 pub type Tag = u32;
-pub type Offset = u32;
+pub type Index = u32;
 pub type Generation = u32;
 pub type Position = glm::Vec3;
 pub type Normal = glm::Vec3;
@@ -70,9 +70,9 @@ impl ElementData for HalfEdgeData {}
 
 #[derive(Debug, Clone, Default)]
 pub struct VertexData {
-    /// Index of the outgoing edge
+    /// Handle of the outgoing edge
     pub edge: HalfEdgeHandle,
-    /// Index of point this vertex belongs to
+    /// Handle of point this vertex belongs to
     pub point: PointHandle,
     /// Vertex attributes
     pub attrs: VertexAttributes,
