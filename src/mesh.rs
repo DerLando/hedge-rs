@@ -52,8 +52,8 @@ impl Mesh {
 
     pub fn faces(&self) -> impl Iterator<Item=FaceProxy> {
         self.kernel.face_buffer.active_cells()
-            .map(move |(offset, _)| {
-                FaceProxy::new(FaceHandle::new(offset as u32), self)
+            .map(move |(index, _)| {
+                FaceProxy::new(FaceHandle::new(index as u32), self)
             })
     }
 

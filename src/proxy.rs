@@ -15,6 +15,7 @@ use crate::iterators::{
     VertexCirculator
 };
 use std::cell::{Ref, RefMut};
+use log::*;
 
 pub trait ElementProxy<'mesh, E: Element + 'mesh> {
     fn new(handle: E::Handle, mesh: &'mesh Mesh) -> Self;
@@ -43,19 +44,19 @@ pub trait ElementProxy<'mesh, E: Element + 'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct FaceProxy<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: FaceHandle,
+    pub handle: FaceHandle,
 }
 
 impl<'mesh> ElementProxy<'mesh, Face> for FaceProxy<'mesh> {
-    fn new(index: FaceHandle, mesh: &'mesh Mesh) -> Self {
+    fn new(handle: FaceHandle, mesh: &'mesh Mesh) -> Self {
         FaceProxy {
             mesh,
-            index,
+            handle,
         }
     }
 
     fn element(&self) -> Option<&'mesh Face> {
-        self.mesh.get(self.index)
+        self.mesh.get(self.handle)
     }
 }
 
@@ -84,50 +85,68 @@ impl<'mesh> IsValid for FaceProxy<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct HalfEdgeProxy<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: HalfEdgeHandle,
+    pub handle: HalfEdgeHandle,
 }
 
 impl<'mesh> ElementProxy<'mesh, HalfEdge> for HalfEdgeProxy<'mesh> {
-    fn new(index: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
+    fn new(handle: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
         HalfEdgeProxy {
             mesh,
-            index,
+            handle,
         }
     }
 
     fn element(&self) -> Option<&'mesh HalfEdge> {
-        self.mesh.get(self.index)
+        self.mesh.get(self.handle)
     }
 }
 
 impl<'mesh> HalfEdgeProxy<'mesh> {
     pub fn is_boundary(&self) -> bool {
-        !self.face().is_valid() || !self.twin().face().is_valid()
+        !self.face().is_valid() || !self.adjacent().face().is_valid()
     }
 
     pub fn next(&self) -> HalfEdgeProxy<'mesh> {
-        let next_index = self.data().map(|data| data.next);
-        HalfEdgeProxy::maybe(next_index, self.mesh)
+        let next_handle = self.data().map(|data| data.next);
+        HalfEdgeProxy::maybe(next_handle, self.mesh)
     }
 
     pub fn prev(&self) -> HalfEdgeProxy<'mesh> {
-        let prev_index = self.data().map(|data| data.prev);
-        HalfEdgeProxy::maybe(prev_index, self.mesh)
+        let prev_handle = self.data().map(|data| data.prev);
+        HalfEdgeProxy::maybe(prev_handle, self.mesh)
     }
 
-    pub fn twin(&self) -> HalfEdgeProxy<'mesh> {
-        let twin_index = self.data().map(|data| data.adjacent);
-        HalfEdgeProxy::maybe(twin_index, self.mesh)
+    pub fn adjacent(&self) -> HalfEdgeProxy<'mesh> {
+        let adjacent_handle = self.data().map(|data| data.adjacent);
+        HalfEdgeProxy::maybe(adjacent_handle, self.mesh)
     }
 
     pub fn face(&self) -> FaceProxy<'mesh> {
-        let face_index = self.data().map(|data| data.face);
-        FaceProxy::maybe(face_index, self.mesh)
+        let face_handle = self.data().map(|data| data.face);
+        FaceProxy::maybe(face_handle, self.mesh)
     }
 
     pub fn vertex(&self) -> VertexProxy<'mesh> {
-        let vertex_index = self.data().map(|data| data.vertex);
-        VertexProxy::maybe(vertex_index, self.mesh)
+        let vertex_handle = self.data().map(|data| data.vertex);
+        VertexProxy::maybe(vertex_handle, self.mesh)
+    }
+
+    pub fn connect_to(&self, next: &HalfEdgeProxy) {
+        match (self.element(), next.element()) {
+            (Some(p), Some(n)) => {
+                p.data_mut().next = next.handle;
+                n.data_mut().prev = self.handle;
+            },
+            (None, Some(_)) => {
+                error!("Unable to connect edges: source proxy was invalid.");
+            },
+            (Some(_), None) => {
+                error!("Unable to connect edges: target proxy was invalid.");
+            },
+            (None, None) => {
+                error!("Unable to connect edges: both proxies were invalid.");
+            }
+        }
     }
 }
 
@@ -141,26 +160,26 @@ impl<'mesh> IsValid for HalfEdgeProxy<'mesh> {
 #[derive(Debug, Copy, Clone)]
 pub struct VertexProxy<'mesh> {
     mesh: &'mesh Mesh,
-    pub index: VertexHandle,
+    pub handle: VertexHandle,
 }
 
 impl<'mesh> ElementProxy<'mesh, Vertex> for VertexProxy<'mesh> {
-    fn new(index: VertexHandle, mesh: &'mesh Mesh) -> Self {
+    fn new(handle: VertexHandle, mesh: &'mesh Mesh) -> Self {
         VertexProxy {
             mesh,
-            index,
+            handle,
         }
     }
 
     fn element(&self) -> Option<&'mesh Vertex> {
-        self.mesh.get(self.index)
+        self.mesh.get(self.handle)
     }
 }
 
 impl<'mesh> VertexProxy<'mesh> {
     pub fn edge(&self) -> HalfEdgeProxy<'mesh> {
-        let edge_index = self.data().map(|data| data.edge);
-        HalfEdgeProxy::maybe(edge_index, self.mesh)
+        let edge_handle = self.data().map(|data| data.edge);
+        HalfEdgeProxy::maybe(edge_handle, self.mesh)
     }
 
     pub fn edges(&self) -> VertexCirculator {

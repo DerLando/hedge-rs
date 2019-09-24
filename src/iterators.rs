@@ -29,7 +29,7 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.last_edge = if let Some(last_edge) = self.last_edge {
-            let next_edge = last_edge.prev().twin();
+            let next_edge = last_edge.prev().adjacent();
             next_edge.element().and_then(|e| {
                 if e.tag() == self.tag {
                     debug!("Encountered previously tagged edge.");
@@ -96,7 +96,7 @@ impl<'mesh> Iterator for FaceEdges<'mesh> {
                     }
                 })
                 .and_then(|next_edge| {
-                    if next_edge.index == self.root_edge.index {
+                    if next_edge.handle == self.root_edge.handle {
                         None
                     } else {
                         Some(next_edge)

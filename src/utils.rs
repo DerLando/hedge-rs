@@ -74,7 +74,7 @@ pub fn build_full_edge_from(
     v1: VertexHandle
 ) -> HalfEdgeHandle {
     let e0 = {
-        let v0 = mesh.edge(prev).twin().vertex().index;
+        let v0 = mesh.edge(prev).adjacent().vertex().handle;
         build_full_edge(mesh, v0, v1)
     };
     connect_edges(mesh, prev, e0);
@@ -86,7 +86,7 @@ pub fn close_edge_loop(
     prev: HalfEdgeHandle,
     next: HalfEdgeHandle
 ) -> HalfEdgeHandle {
-    let v0 = mesh.edge(prev).twin().element().map(|e| e.data().vertex);
+    let v0 = mesh.edge(prev).adjacent().element().map(|e| e.data().vertex);
     let v1 = mesh.edge(next).element().map(|e| e.data().vertex);
 
     if let (Some(v0), Some(v1)) = (v0, v1) {
@@ -125,15 +125,15 @@ pub fn assign_face_to_loop(
     let mut edge = face.root_edge();
     loop {
         if let Some(mut data) = edge.data_mut() {
-            if data.face == face.index {
+            if data.face == face.handle {
                 break;
             }
-            data.face = face.index;
+            data.face = face.handle;
             if data.next == root_edge_index {
                 break;
             }
         } else {
-            error!("Invalid edge index! {:?}", edge.index);
+            error!("Invalid edge index! {:?}", edge.handle);
             break;
         }
         edge = edge.next();

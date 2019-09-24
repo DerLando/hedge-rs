@@ -63,8 +63,8 @@ pub trait GetElement<H> where H: ElementHandle {
     fn get(&self, handle: H) -> Option<&<H as ElementHandle>::Element>;
 }
 
-pub trait MakeEdgePair<A> {
-    fn make_edge_pair(&mut self, args: A) -> HalfEdgeHandle;
+pub trait MakeEdge<A> {
+    fn make_edge(&mut self, args: A) -> (HalfEdgeHandle, HalfEdgeHandle);
 }
 
 pub trait AddFace<A> {
