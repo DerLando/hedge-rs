@@ -102,7 +102,14 @@ impl Default for PointData {
 }
 
 impl PointData {
-    pub fn new(position: Position) -> Self {
+    pub fn new(position: Position, normal: Normal) -> Self {
+        PointData {
+            position,
+            normal,
+        }
+    }
+
+    pub fn from_position(position: Position) -> Self {
         PointData {
             position,
             ..Default::default()

@@ -203,11 +203,11 @@ impl Element for Face {
 pub type Point = MeshElement<PointData>;
 impl Point {
     pub fn new(position: Position) -> Self {
-        Point::with_data(PointData::new(position))
+        Point::with_data(PointData::from_position(position))
     }
 
     pub fn from_coords(x: f32, y: f32, z: f32) -> Self {
-        Point::with_data(PointData::new(glm::vec3(x, y, z)))
+        Point::with_data(PointData::from_position(glm::vec3(x, y, z)))
     }
 
     pub fn from_slice(offset: usize, values: &[f32]) -> Self {
@@ -217,7 +217,7 @@ impl Point {
             values[offset+1],
             values[offset+2]
         );
-        Point::with_data(PointData::new(position))
+        Point::with_data(PointData::from_position(position))
     }
 }
 
