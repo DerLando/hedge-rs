@@ -1,6 +1,6 @@
 
 use std::cell::{Cell, RefCell, Ref, RefMut};
-use nalgebra_glm as glm;
+use nalgebra as na;
 use crate::handles::{
     HalfEdgeHandle, FaceHandle,
     VertexHandle, PointHandle
@@ -206,13 +206,13 @@ impl Point {
         Point::with_data(PointData::from_position(position))
     }
 
-    pub fn from_coords(x: f32, y: f32, z: f32) -> Self {
-        Point::with_data(PointData::from_position(glm::vec3(x, y, z)))
+    pub fn from_position(x: f32, y: f32, z: f32) -> Self {
+        Point::with_data(PointData::from_position(na::Point3::new(x, y, z)))
     }
 
     pub fn from_slice(offset: usize, values: &[f32]) -> Self {
         assert!(values.len() >= (offset + 3));
-        let position = glm::vec3(
+        let position = na::Point3::new(
             values[offset],
             values[offset+1],
             values[offset+2]

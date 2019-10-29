@@ -1,6 +1,6 @@
 [package]
 name = "hedge"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Chip Collier <photex@gmail.com>"]
 description = "An index based half-edge mesh implementation."
 keywords = ["halfedge", "half-edge", "mesh", "graphics", "meshes"]
@@ -14,19 +14,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-nalgebra-glm = "0.4.2"
-amethyst_assets = {optional=true, version="0.8.0"}
-amethyst_core = {optional=true, version="0.7.0"}
-amethyst_error = {optional=true, version="0.2.0"}
-amethyst_rendy = {optional=true, version="0.2.0"}
-err-derive = {optional=true, version="0.1"}
+nalgebra = "0.18"
 
 [dev-dependencies]
 env_logger = "0.6"
-
-[features]
-default = []
-amethyst = ["amethyst_core", "amethyst_error", "amethyst_assets", "err-derive"]
-vulkan = ["amethyst_rendy/vulkan"]
-metal = ["amethyst_rendy/metal"]
-empty = ["amethyst_rendy/empty"]

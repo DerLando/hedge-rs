@@ -141,9 +141,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
         let v0 = mesh.add(Vertex::at_point(p0));
         let v1 = mesh.add(Vertex::at_point(p1));
@@ -177,9 +177,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
         let v0 = mesh.add(Vertex::at_point(p0));
         let v1 = mesh.add(Vertex::at_point(p1));
@@ -272,11 +272,11 @@ mod tests {
         let mut mesh = Mesh::new();
 
         let points = [
-            mesh.add(Point::from_coords(-1.0, 0.0, 0.0)),
-            mesh.add(Point::from_coords(0.0, -1.0, 0.0)),
-            mesh.add(Point::from_coords(1.0, 0.0, 0.0)),
-            mesh.add(Point::from_coords(0.0, 1.0, 0.0)),
-            mesh.add(Point::from_coords(0.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(-1.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(0.0, -1.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(0.0, 1.0, 0.0)),
+            mesh.add(Point::from_position(0.0, 0.0, 0.0)),
         ];
 
         let root_vert = build_fan(points, &mut mesh);

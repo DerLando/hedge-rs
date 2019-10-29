@@ -3,10 +3,15 @@ use std::fmt;
 use std::sync::atomic;
 
 use crate::kernel::Kernel;
-use crate::data::Tag;
+use crate::elements::{
+    Face, HalfEdge, Vertex
+};
+use crate::data::{
+    Tag, HalfEdgeData, VertexData, PointData,
+};
 use crate::handles::{
     HalfEdgeHandle, FaceHandle,
-    VertexHandle,
+    VertexHandle, PointHandle,
 };
 use crate::traits::*;
 use crate::proxy::*;
@@ -111,6 +116,121 @@ impl Mesh {
         where Kernel: GetElement<H>
     {
         self.kernel.get(handle)
+    }
+}
+
+impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (p0, p1): (PointHandle, PointHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let v0 = self.add(Vertex::at_point(p0));
+        let v1 = self.add(Vertex::at_point(p1));
+
+        let (e0, e1) = self.kernel.new_edge();
+        self.get(e0).map(|e| e.data_mut().vertex = v0);
+        self.get(e1).map(|e| e.data_mut().vertex = v1);
+        self.get(v0).map(|v| v.data_mut().edge = e0);
+        self.get(v1).map(|v| v.data_mut().edge = e1);
+
+        return (e0, e1);
+    }
+}
+
+impl<'a> MakeEdge<(PointHandle, PointHandle, FaceHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (p0, p1, face): (PointHandle, PointHandle, FaceHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let (e0, e1) = self.make_edge((p0, p1));
+        self.get(e0).map(|e| e.data_mut().face = face);
+        self.get(e1).map(|e| e.data_mut().face = face);
+        return (e0, e1);
+    }
+}
+
+impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (e0, p1): (HalfEdgeHandle, PointHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let p0 = {
+            match self.edge(e0).prev().adjacent().vertex().data() {
+                Some(data) => data.point,
+                None => {
+                    return (Default::default(), Default::default());
+                }
+            }
+        };
+        let v0 = self.add(Vertex::at_point(p0));
+        let v1 = self.add(Vertex::at_point(p1));
+
+        let (e0, e1) = self.kernel.new_edge();
+        self.get(e0).map(|e| e.data_mut().vertex = v0);
+        self.get(e1).map(|e| e.data_mut().vertex = v1);
+        self.get(v0).map(|v| v.data_mut().edge = e0);
+        self.get(v1).map(|v| v.data_mut().edge = e1);
+
+        return (e0, e1);
+    }
+}
+
+impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle, FaceHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (e0, p1, face): (HalfEdgeHandle, PointHandle, FaceHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let edge_pair = self.make_edge((e0, p1));
+        self.get(edge_pair.0).map(|e| e.data_mut().face = face);
+        self.get(edge_pair.1).map(|e| e.data_mut().face = face);
+        return edge_pair;
+    }
+}
+
+impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (e0, e2): (HalfEdgeHandle, HalfEdgeHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        unimplemented!()
+    }
+}
+
+impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle, FaceHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (e0, e2, face): (HalfEdgeHandle, HalfEdgeHandle, FaceHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let edge_pair = self.make_edge((e0, e2));
+        self.get(edge_pair.0).map(|e| e.data_mut().face = face);
+        self.get(edge_pair.1).map(|e| e.data_mut().face = face);
+        return edge_pair;
+    }
+}
+
+impl<'a> AddFace<&'a [PointHandle]> for Mesh {
+    fn add_face(&mut self, points: &'a [PointHandle]) -> FaceHandle {
+        assert!(points.len() >= 3);
+        let f0 = self.add(Face::default());
+
+        let root_point = points[0];
+        let current_point = points[1];
+        let (root_edge, _) = self.make_edge((root_point, current_point, f0));
+        let mut previous_edge = root_edge;
+        for current_point in points.split_at(2).1 {
+            // TODO: make edge from edge to point
+            //previous_edge =
+        }
+        unimplemented!()
+    }
+}
+
+impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle])> for Mesh {
+    fn add_face(
+        &mut self,
+        (edge_handle, points): (HalfEdgeHandle, &'a [PointHandle])
+    ) -> FaceHandle {
+        unimplemented!()
     }
 }
 
@@ -272,9 +392,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut mesh = Mesh::new();
 
-        let p0 = mesh.add(Point::from_coords(-1.0, 0.0, 0.0));
-        let p1 = mesh.add(Point::from_coords(1.0, 0.0, 0.0));
-        let p2 = mesh.add(Point::from_coords(0.0, 1.0, 0.0));
+        let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
         let v0 = mesh.add(Vertex::at_point(p0));
         let v1 = mesh.add(Vertex::at_point(p1));

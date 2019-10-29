@@ -1,5 +1,5 @@
 
-use nalgebra_glm as glm;
+use nalgebra as na;
 use crate::traits::ElementData;
 use crate::handles::{
     HalfEdgeHandle, FaceHandle, VertexHandle, PointHandle,
@@ -8,40 +8,21 @@ use crate::handles::{
 pub type Tag = u32;
 pub type Index = u32;
 pub type Generation = u32;
-pub type Position = glm::Vec3;
-pub type Normal = glm::Vec3;
-pub type Color = glm::Vec4;
-
-#[derive(Debug, Clone)]
-pub struct UV {
-    set: String,
-    coord: glm::Vec2,
-}
-
-impl Default for UV {
-    fn default() -> Self {
-        UV {
-            set: "Tex0".to_owned(),
-            coord: glm::zero(),
-        }
-    }
-}
+pub type Position = na::Point3<f32>;
+pub type Normal = na::Vector3<f32>;
+pub type Color = na::Vector4<f32>;
 
 #[derive(Debug, Clone)]
 pub struct VertexAttributes {
-    position: Position,
     normal: Normal,
-    color: Option<Color>,
-    uvs: Vec<UV>,
+    color: Color,
 }
 
 impl Default for VertexAttributes {
     fn default() -> Self {
         VertexAttributes {
-            position: glm::zero(),
-            normal: glm::zero(),
-            color: None,
-            uvs: Vec::default(),
+            normal: na::zero(),
+            color: na::Vector4::identity(),
         }
     }
 }
@@ -89,14 +70,13 @@ impl ElementData for FaceData {}
 #[derive(Debug, Clone)]
 pub struct PointData {
     pub position: Position,
-    pub normal: Normal,
+    // TODO: vertices
 }
 
 impl Default for PointData {
     fn default() -> Self {
         PointData {
-            position: glm::zero(),
-            normal: glm::zero(),
+            position: na::Point3::new(0.0, 0.0, 0.0),
         }
     }
 }
@@ -105,7 +85,6 @@ impl PointData {
     pub fn new(position: Position, normal: Normal) -> Self {
         PointData {
             position,
-            normal,
         }
     }
 

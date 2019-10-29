@@ -136,6 +136,7 @@ impl<E: Element> ElementBuffer<E> {
         }
     }
 
+    // TODO: ... um if you call this on an unsorted buffer ..
     fn truncate_inactive(&mut self) {
         let total = self.buffer.len();
         let inactive = self.free_cells.len();
@@ -184,6 +185,19 @@ pub struct Kernel {
 }
 
 impl Kernel {
+    pub fn new_edge(&mut self) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let e0 = self.add(HalfEdge::default());
+        let e1 = self.add(HalfEdge::default());
+        match (self.get(e0), self.get(e1)) {
+            (Some(edge0), Some(edge1)) => {
+                edge0.data_mut().adjacent = e1;
+                edge1.data_mut().adjacent = e0;
+            }
+            _ => panic!("Invalid edge handles specified: {:?}, {:?}", e0, e1),
+        }
+        return (e0, e1);
+    }
+
     fn defrag_faces(&mut self) {
         if self.face_buffer.has_inactive_cells() {
             self.face_buffer.sort();
@@ -465,18 +479,7 @@ mod tests {
     use crate::data::{FaceData, HalfEdgeData, VertexData};
     use crate::handles::HalfEdgeHandle;
 
-    fn new_edge(kernel: &mut Kernel) -> HalfEdgeHandle {
-        let e0 = kernel.add(HalfEdge::default());
-        let e1 = kernel.add(HalfEdge::default());
-        match (kernel.get(e0), kernel.get(e1)) {
-            (Some(edge0), Some(edge1)) => {
-                edge0.data_mut().adjacent = e1;
-                edge1.data_mut().adjacent = e0;
-            }
-            _ => panic!("Invalid edge handles specified: {:?}, {:?}", e0, e1),
-        }
-        e0
-    }
+
 
     fn make_twin_edge(kernel: &mut Kernel, twin_handle: HalfEdgeHandle) -> HalfEdgeHandle {
         let e0 = kernel.add(HalfEdge::with_data(HalfEdgeData {
@@ -555,9 +558,9 @@ mod tests {
     }
 
     fn make_triangle(kernel: &mut Kernel) -> FaceHandle {
-        let e0 = new_edge(kernel);
-        let e1 = new_edge(kernel);
-        let e2 = new_edge(kernel);
+        let (e0, _) = kernel.new_edge();
+        let (e1, _) = kernel.new_edge();
+        let (e2, _) = kernel.new_edge();
 
         let _ = connect_edges(kernel, e0, e1);
         let _ = connect_edges(kernel, e1, e2);
