@@ -1,4 +1,3 @@
-use log;
 use std::fmt;
 use std::sync::atomic;
 
@@ -142,6 +141,19 @@ impl<'a> MakeEdge<(VertexHandle, VertexHandle)> for Mesh {
     }
 }
 
+impl<'a> MakeEdge<(VertexHandle, VertexHandle, FaceHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (v0, v1, face): (VertexHandle, VertexHandle, FaceHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let edge_pair = self.make_edge((v0, v1));
+        if let Some(e) = self.get(edge_pair.0) {
+            e.data_mut().face = face;
+        }
+        edge_pair
+    }
+}
+
 impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
     fn make_edge(
         &mut self,
@@ -172,19 +184,9 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
         &mut self,
         (e0, p1): (HalfEdgeHandle, PointHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
-        let p0 = {
-            match self.edge(e0).adjacent().vertex().data() {
-                Some(data) => data.point,
-                None => {
-                    // Returning two invalid edge handles sucks.
-                    // This entire adventure is just an enormous mess sometimes.
-                    // I really hope to maybe find some route back to sanity.
-                    log::error!("Specified input edge was invalid.");
-                    return (Default::default(), Default::default());
-                }
-            }
-        };
-        let edge_pair = self.make_edge((p0, p1));
+        let v0 = self.edge(e0).adjacent().vertex().handle;
+        let v1 = self.add(Vertex::at_point(p1));
+        let edge_pair = self.make_edge((v0, v1));
         let base_edge = self.edge(e0);
         let next_edge = self.edge(edge_pair.0);
         base_edge.connect_to(&next_edge);
@@ -210,28 +212,9 @@ impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
         &mut self,
         (e0, e2): (HalfEdgeHandle, HalfEdgeHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
-        let p0 = {
-            match self.edge(e0).adjacent().vertex().data() {
-                Some(data) => data.point,
-                None => {
-                    // Returning two invalid edge handles sucks.
-                    // This entire adventure is just an enormous mess sometimes.
-                    // I really hope to maybe find some route back to sanity.
-                    log::error!("Unable to find the first point of the new edge.");
-                    return (Default::default(), Default::default());
-                }
-            }
-        };
-        let p1 = {
-            match self.edge(e2).vertex().data() {
-                Some(data) => data.point,
-                None => {
-                    log::error!("Unable to find the second point of the new edge.");
-                    return (Default::default(), Default::default());
-                }
-            }
-        };
-        let edge_pair = self.make_edge((p0, p1));
+        let v0 = self.edge(e0).adjacent().vertex().handle;
+        let v1 = self.edge(e2).vertex().handle;
+        let edge_pair = self.make_edge((v0, v1));
         let base_edge = self.edge(e0);
         let next_edge = self.edge(edge_pair.0);
         let last_edge = self.edge(e2);
