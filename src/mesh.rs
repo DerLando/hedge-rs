@@ -1,21 +1,13 @@
-
 use log;
 use std::fmt;
 use std::sync::atomic;
 
+use crate::data::Tag;
+use crate::elements::{Face, Vertex};
+use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
 use crate::kernel::Kernel;
-use crate::elements::{
-    Face, Vertex
-};
-use crate::data::{
-    Tag,
-};
-use crate::handles::{
-    HalfEdgeHandle, FaceHandle,
-    VertexHandle, PointHandle,
-};
-use crate::traits::*;
 use crate::proxy::*;
+use crate::traits::*;
 
 pub struct Mesh {
     pub kernel: Kernel,
@@ -58,11 +50,11 @@ impl Mesh {
         self.kernel.face_buffer.len() - 1
     }
 
-    pub fn faces(&self) -> impl Iterator<Item=FaceProxy> {
-        self.kernel.face_buffer.active_cells()
-            .map(move |(handle, _)| {
-                FaceProxy::new(FaceHandle::new(handle as u32), self)
-            })
+    pub fn faces(&self) -> impl Iterator<Item = FaceProxy> {
+        self.kernel
+            .face_buffer
+            .active_cells()
+            .map(move |(handle, _)| FaceProxy::new(FaceHandle::new(handle as u32), self))
     }
 
     /// Returns an `EdgeProxy` for the given handle.
@@ -74,11 +66,11 @@ impl Mesh {
         self.kernel.edge_buffer.len() - 1
     }
 
-    pub fn edges(&self) -> impl Iterator<Item=HalfEdgeProxy> {
-        self.kernel.edge_buffer.active_cells()
-            .map(move |(offset, _)| {
-                HalfEdgeProxy::new(HalfEdgeHandle::new(offset as u32), self)
-            })
+    pub fn edges(&self) -> impl Iterator<Item = HalfEdgeProxy> {
+        self.kernel
+            .edge_buffer
+            .active_cells()
+            .map(move |(offset, _)| HalfEdgeProxy::new(HalfEdgeHandle::new(offset as u32), self))
     }
 
     /// Returns a `VertexProxy` for the given handle.
@@ -90,11 +82,11 @@ impl Mesh {
         self.kernel.vertex_buffer.len() - 1
     }
 
-    pub fn vertices(&self) -> impl Iterator<Item=VertexProxy> {
-        self.kernel.vertex_buffer.active_cells()
-            .map(move |(offset, _)| {
-                VertexProxy::new(VertexHandle::new(offset as u32), self)
-            })
+    pub fn vertices(&self) -> impl Iterator<Item = VertexProxy> {
+        self.kernel
+            .vertex_buffer
+            .active_cells()
+            .map(move |(offset, _)| VertexProxy::new(VertexHandle::new(offset as u32), self))
     }
 
     pub fn point_count(&self) -> usize {
@@ -102,21 +94,22 @@ impl Mesh {
     }
 
     pub fn add<E: Element>(&mut self, element: E) -> E::Handle
-        where Kernel: AddElement<E>
+    where
+        Kernel: AddElement<E>,
     {
         self.kernel.add(element)
     }
 
     pub fn remove<H: ElementHandle>(&mut self, handle: H)
-        where Kernel: RemoveElement<H>
+    where
+        Kernel: RemoveElement<H>,
     {
         self.kernel.remove(handle)
     }
 
-    pub fn get<H: ElementHandle>(
-        &self, handle: H
-    ) -> Option<&<H as ElementHandle>::Element>
-        where Kernel: GetElement<H>
+    pub fn get<H: ElementHandle>(&self, handle: H) -> Option<&<H as ElementHandle>::Element>
+    where
+        Kernel: GetElement<H>,
     {
         self.kernel.get(handle)
     }
@@ -129,13 +122,21 @@ impl Mesh {
 impl<'a> MakeEdge<(VertexHandle, VertexHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (v0, v1): (VertexHandle, VertexHandle)
+        (v0, v1): (VertexHandle, VertexHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let (e0, e1) = self.kernel.new_edge();
-        if let Some(e) = self.get(e0) { e.data_mut().vertex = v0; }
-        if let Some(e) = self.get(e1) { e.data_mut().vertex = v1; }
-        if let Some(v) = self.get(v0) { v.data_mut().edge = e0; }
-        if let Some(v) = self.get(v1) { v.data_mut().edge = e1; }
+        if let Some(e) = self.get(e0) {
+            e.data_mut().vertex = v0;
+        }
+        if let Some(e) = self.get(e1) {
+            e.data_mut().vertex = v1;
+        }
+        if let Some(v) = self.get(v0) {
+            v.data_mut().edge = e0;
+        }
+        if let Some(v) = self.get(v1) {
+            v.data_mut().edge = e1;
+        }
 
         (e0, e1)
     }
@@ -144,7 +145,7 @@ impl<'a> MakeEdge<(VertexHandle, VertexHandle)> for Mesh {
 impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (p0, p1): (PointHandle, PointHandle)
+        (p0, p1): (PointHandle, PointHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let v0 = self.add(Vertex::at_point(p0));
         let v1 = self.add(Vertex::at_point(p1));
@@ -156,10 +157,12 @@ impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
 impl<'a> MakeEdge<(PointHandle, PointHandle, FaceHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (p0, p1, face): (PointHandle, PointHandle, FaceHandle)
+        (p0, p1, face): (PointHandle, PointHandle, FaceHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let (e0, e1) = self.make_edge((p0, p1));
-        if let Some(e) = self.get(e0) { e.data_mut().face = face; }
+        if let Some(e) = self.get(e0) {
+            e.data_mut().face = face;
+        }
         (e0, e1)
     }
 }
@@ -167,7 +170,7 @@ impl<'a> MakeEdge<(PointHandle, PointHandle, FaceHandle)> for Mesh {
 impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (e0, p1): (HalfEdgeHandle, PointHandle)
+        (e0, p1): (HalfEdgeHandle, PointHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let p0 = {
             match self.edge(e0).adjacent().vertex().data() {
@@ -176,21 +179,28 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
                     // Returning two invalid edge handles sucks.
                     // This entire adventure is just an enormous mess sometimes.
                     // I really hope to maybe find some route back to sanity.
+                    log::error!("Specified input edge was invalid.");
                     return (Default::default(), Default::default());
                 }
             }
         };
-        self.make_edge((p0, p1))
+        let edge_pair = self.make_edge((p0, p1));
+        let base_edge = self.edge(e0);
+        let next_edge = self.edge(edge_pair.0);
+        base_edge.connect_to(&next_edge);
+        edge_pair
     }
 }
 
 impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle, FaceHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (e0, p1, face): (HalfEdgeHandle, PointHandle, FaceHandle)
+        (e0, p1, face): (HalfEdgeHandle, PointHandle, FaceHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let edge_pair = self.make_edge((e0, p1));
-        if let Some(e) = self.get(edge_pair.0) { e.data_mut().face = face; }
+        if let Some(e) = self.get(edge_pair.0) {
+            e.data_mut().face = face;
+        }
         edge_pair
     }
 }
@@ -198,7 +208,7 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle, FaceHandle)> for Mesh {
 impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (e0, e2): (HalfEdgeHandle, HalfEdgeHandle)
+        (e0, e2): (HalfEdgeHandle, HalfEdgeHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let p0 = {
             match self.edge(e0).adjacent().vertex().data() {
@@ -221,17 +231,25 @@ impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
                 }
             }
         };
-        self.make_edge((p0, p1))
+        let edge_pair = self.make_edge((p0, p1));
+        let base_edge = self.edge(e0);
+        let next_edge = self.edge(edge_pair.0);
+        let last_edge = self.edge(e2);
+        base_edge.connect_to(&next_edge);
+        next_edge.connect_to(&last_edge);
+        edge_pair
     }
 }
 
 impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle, FaceHandle)> for Mesh {
     fn make_edge(
         &mut self,
-        (e0, e2, face): (HalfEdgeHandle, HalfEdgeHandle, FaceHandle)
+        (e0, e2, face): (HalfEdgeHandle, HalfEdgeHandle, FaceHandle),
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let edge_pair = self.make_edge((e0, e2));
-        if let Some(e) = self.get(edge_pair.0) { e.data_mut().face = face; }
+        if let Some(e) = self.get(edge_pair.0) {
+            e.data_mut().face = face;
+        }
         edge_pair
     }
 }
@@ -251,18 +269,18 @@ impl<'a> AddFace<&'a [PointHandle]> for Mesh {
 impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle])> for Mesh {
     fn add_face(
         &mut self,
-        (edge_handle, points): (HalfEdgeHandle, &'a [PointHandle])
+        (root_edge, points): (HalfEdgeHandle, &'a [PointHandle]),
     ) -> FaceHandle {
         assert!(points.len() >= 1);
         let f0 = self.add(Face::default());
-        self.add_face((edge_handle, points, f0))
+        self.add_face((root_edge, points, f0))
     }
 }
 
 impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
     fn add_face(
         &mut self,
-        (root_edge, points, f0): (HalfEdgeHandle, &'a [PointHandle], FaceHandle)
+        (root_edge, points, f0): (HalfEdgeHandle, &'a [PointHandle], FaceHandle),
     ) -> FaceHandle {
         assert!(points.len() >= 1);
         let mut previous_edge = root_edge;
@@ -271,6 +289,9 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
             previous_edge = edge_pair.0;
         }
         let _ = self.make_edge((previous_edge, root_edge, f0));
+        if let Some(face) = self.get(f0) {
+            face.data_mut().root_edge = root_edge;
+        }
         f0
     }
 }
@@ -278,10 +299,8 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::elements::{Face, HalfEdge, Point, Vertex};
     use crate::handles::PointHandle;
-    use crate::elements::{
-        HalfEdge, Face, Point, Vertex
-    };
     use log::*;
 
     #[test]
@@ -445,7 +464,10 @@ mod tests {
 
     #[inline]
     fn point(edge: &HalfEdgeProxy) -> PointHandle {
-        edge.vertex().data().map(|d| d.point).unwrap_or_else(Default::default)
+        edge.vertex()
+            .data()
+            .map(|d| d.point)
+            .unwrap_or_else(Default::default)
     }
 
     #[test]

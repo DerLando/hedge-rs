@@ -1,18 +1,10 @@
-
-use std::cell::{Cell, RefCell, Ref, RefMut};
-use nalgebra as na;
-use crate::handles::{
-    HalfEdgeHandle, FaceHandle,
-    VertexHandle, PointHandle
-};
 use crate::data::{
-    Generation, Tag, Position, ElementStatus,
-    HalfEdgeData, FaceData, VertexData, PointData,
+    ElementStatus, FaceData, Generation, HalfEdgeData, PointData, Position, Tag, VertexData,
 };
-use crate::traits::{
-    ElementData, Element,
-    Storable, Taggable, IsValid
-};
+use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
+use crate::traits::{Element, ElementData, IsValid, Storable, Taggable};
+use nalgebra as na;
+use std::cell::{Cell, Ref, RefCell, RefMut};
 
 /// Trait for accessing Mesh element properties.
 #[derive(Debug, Clone)]
@@ -99,11 +91,11 @@ impl IsValid for HalfEdge {
     /// and `is_connected`
     fn is_valid(&self) -> bool {
         let data = self.data();
-        self.is_active() &&
-            data.vertex.is_valid() &&
-            data.adjacent.is_valid() &&
-            data.next.is_valid() &&
-            data.prev.is_valid()
+        self.is_active()
+            && data.vertex.is_valid()
+            && data.adjacent.is_valid()
+            && data.next.is_valid()
+            && data.prev.is_valid()
     }
 }
 
@@ -212,11 +204,7 @@ impl Point {
 
     pub fn from_slice(offset: usize, values: &[f32]) -> Self {
         assert!(values.len() >= (offset + 3));
-        let position = na::Point3::new(
-            values[offset],
-            values[offset+1],
-            values[offset+2]
-        );
+        let position = na::Point3::new(values[offset], values[offset + 1], values[offset + 2]);
         Point::with_data(PointData::from_position(position))
     }
 }

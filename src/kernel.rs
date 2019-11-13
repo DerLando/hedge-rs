@@ -469,12 +469,9 @@ impl RemoveElement<FaceHandle> for Kernel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::Element;
     use crate::data::{FaceData, HalfEdgeData, VertexData};
     use crate::handles::HalfEdgeHandle;
-
-
-
+    use crate::traits::Element;
 
     fn make_twin_edge(kernel: &mut Kernel, twin_handle: HalfEdgeHandle) -> HalfEdgeHandle {
         let e0 = kernel.add(HalfEdge::with_data(HalfEdgeData {
@@ -545,9 +542,7 @@ mod tests {
     }
 
     fn make_face(kernel: &mut Kernel, root_edge: HalfEdgeHandle) -> FaceHandle {
-        let face_handle = kernel.add(Face::with_data(FaceData {
-            root_edge,
-        }));
+        let face_handle = kernel.add(Face::with_data(FaceData { root_edge }));
         set_face_to_loop(kernel, root_edge, face_handle);
         face_handle
     }

@@ -1,9 +1,6 @@
-
-use nalgebra as na;
+use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
 use crate::traits::ElementData;
-use crate::handles::{
-    HalfEdgeHandle, FaceHandle, VertexHandle, PointHandle,
-};
+use nalgebra as na;
 
 pub type Tag = u32;
 pub type Index = u32;
@@ -83,9 +80,7 @@ impl Default for PointData {
 
 impl PointData {
     pub fn new(position: Position, _normal: Normal) -> Self {
-        PointData {
-            position,
-        }
+        PointData { position }
     }
 
     pub fn from_position(position: Position) -> Self {

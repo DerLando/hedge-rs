@@ -1,28 +1,19 @@
 //! Facades over a mesh and element handle to enable easy topology traversals.
 
-use crate::traits::*;
-use crate::handles::{
-    HalfEdgeHandle, FaceHandle,
-    VertexHandle,
-};
-use crate::elements::{
-    HalfEdge, Face, Vertex, Point,
-};
+use crate::elements::{Face, HalfEdge, Point, Vertex};
+use crate::handles::{FaceHandle, HalfEdgeHandle, VertexHandle};
+use crate::iterators::{FaceEdges, FaceVertices, VertexCirculator};
 use crate::mesh::Mesh;
-use crate::iterators::{
-    FaceEdges,
-    FaceVertices,
-    VertexCirculator
-};
+use crate::traits::*;
 use std::cell::{Ref, RefMut};
-use log::*;
 
 pub trait ElementProxy<'mesh, E: Element + 'mesh> {
     fn new(handle: E::Handle, mesh: &'mesh Mesh) -> Self;
     fn element(&self) -> Option<&'mesh E>;
 
     fn maybe(handle: Option<E::Handle>, mesh: &'mesh Mesh) -> Self
-        where Self: std::marker::Sized
+    where
+        Self: std::marker::Sized,
     {
         if let Some(handle) = handle {
             Self::new(handle, mesh)
@@ -49,10 +40,7 @@ pub struct FaceProxy<'mesh> {
 
 impl<'mesh> ElementProxy<'mesh, Face> for FaceProxy<'mesh> {
     fn new(handle: FaceHandle, mesh: &'mesh Mesh) -> Self {
-        FaceProxy {
-            mesh,
-            handle,
-        }
+        FaceProxy { mesh, handle }
     }
 
     fn element(&self) -> Option<&'mesh Face> {
@@ -90,10 +78,7 @@ pub struct HalfEdgeProxy<'mesh> {
 
 impl<'mesh> ElementProxy<'mesh, HalfEdge> for HalfEdgeProxy<'mesh> {
     fn new(handle: HalfEdgeHandle, mesh: &'mesh Mesh) -> Self {
-        HalfEdgeProxy {
-            mesh,
-            handle,
-        }
+        HalfEdgeProxy { mesh, handle }
     }
 
     fn element(&self) -> Option<&'mesh HalfEdge> {
@@ -136,15 +121,15 @@ impl<'mesh> HalfEdgeProxy<'mesh> {
             (Some(p), Some(n)) => {
                 p.data_mut().next = next.handle;
                 n.data_mut().prev = self.handle;
-            },
+            }
             (None, Some(_)) => {
-                error!("Unable to connect edges: source proxy was invalid.");
-            },
+                log::error!("Unable to connect edges: source proxy was invalid.");
+            }
             (Some(_), None) => {
-                error!("Unable to connect edges: target proxy was invalid.");
-            },
+                log::error!("Unable to connect edges: target proxy was invalid.");
+            }
             (None, None) => {
-                error!("Unable to connect edges: both proxies were invalid.");
+                log::error!("Unable to connect edges: both proxies were invalid.");
             }
         }
     }
@@ -165,10 +150,7 @@ pub struct VertexProxy<'mesh> {
 
 impl<'mesh> ElementProxy<'mesh, Vertex> for VertexProxy<'mesh> {
     fn new(handle: VertexHandle, mesh: &'mesh Mesh) -> Self {
-        VertexProxy {
-            mesh,
-            handle,
-        }
+        VertexProxy { mesh, handle }
     }
 
     fn element(&self) -> Option<&'mesh Vertex> {
@@ -187,9 +169,7 @@ impl<'mesh> VertexProxy<'mesh> {
     }
 
     pub fn point(&self) -> Option<&'mesh Point> {
-        self.data().and_then(|data| {
-            self.mesh.get(data.point)
-        })
+        self.data().and_then(|data| self.mesh.get(data.point))
     }
 }
 

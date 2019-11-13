@@ -1,8 +1,7 @@
 //! Iterators for simple or common mesh traversal patterns.
 
-use log::*;
 use super::*;
-
+use log::*;
 
 pub struct VertexCirculator<'mesh> {
     tag: Tag,
@@ -17,9 +16,10 @@ impl<'mesh> VertexCirculator<'mesh> {
             tag,
             vert,
             last_edge: None,
-            central_point: vert.data()
+            central_point: vert
+                .data()
                 .map(|d| d.point)
-                .unwrap_or_else(Default::default)
+                .unwrap_or_else(Default::default),
         }
     }
 }
@@ -30,29 +30,32 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
     fn next(&mut self) -> Option<Self::Item> {
         self.last_edge = if let Some(last_edge) = self.last_edge {
             let next_edge = last_edge.prev().adjacent();
-            next_edge.element().and_then(|e| {
-                if e.tag() == self.tag {
-                    debug!("Encountered previously tagged edge.");
-                    None
-                } else {
-                    e.set_tag(self.tag);
-                    Some(next_edge)
-                }
-            }).and_then(|next_edge| {
-                if next_edge.is_boundary() {
-                    warn!("Vertex circulator terminated due to boundary edge.");
-                    None
-                } else if let Some(phnd) = next_edge.vertex().data().map(|d| d.point) {
-                    if phnd == self.central_point {
-                        Some(next_edge)
+            next_edge
+                .element()
+                .and_then(|e| {
+                    if e.tag() == self.tag {
+                        debug!("Encountered previously tagged edge.");
+                        None
                     } else {
-                        debug!("Ending iteration because vertex attributes do not match.");
+                        e.set_tag(self.tag);
+                        Some(next_edge)
+                    }
+                })
+                .and_then(|next_edge| {
+                    if next_edge.is_boundary() {
+                        warn!("Vertex circulator terminated due to boundary edge.");
+                        None
+                    } else if let Some(phnd) = next_edge.vertex().data().map(|d| d.point) {
+                        if phnd == self.central_point {
+                            Some(next_edge)
+                        } else {
+                            debug!("Ending iteration because vertex attributes do not match.");
+                            None
+                        }
+                    } else {
                         None
                     }
-                } else {
-                    None
-                }
-            })
+                })
         } else {
             let edge = self.vert.edge();
             edge.element().and_then(|e| {
@@ -75,7 +78,7 @@ impl<'mesh> FaceEdges<'mesh> {
         FaceEdges {
             tag,
             root_edge: face.root_edge(),
-            last_edge: None
+            last_edge: None,
         }
     }
 }
@@ -86,7 +89,8 @@ impl<'mesh> Iterator for FaceEdges<'mesh> {
     fn next(&mut self) -> Option<Self::Item> {
         self.last_edge = if let Some(last_edge) = self.last_edge {
             let next_edge = last_edge.next();
-            next_edge.element()
+            next_edge
+                .element()
                 .and_then(|edge| {
                     if edge.tag() == self.tag {
                         None
@@ -105,6 +109,7 @@ impl<'mesh> Iterator for FaceEdges<'mesh> {
         } else {
             Some(self.root_edge)
         };
+        dbg!(self.last_edge);
         self.last_edge
     }
 }
@@ -118,7 +123,7 @@ impl<'mesh> FaceVertices<'mesh> {
         let inner_iter = FaceEdges {
             tag,
             root_edge: face.root_edge(),
-            last_edge: None
+            last_edge: None,
         };
         FaceVertices { inner_iter }
     }
@@ -218,13 +223,7 @@ mod tests {
         let f0 = mesh.add_face([points[0], points[1], points[4]].as_ref());
         assert!(f0.is_valid());
 
-        let v2 = mesh
-            .face(f0)
-            .root_edge()
-            .next()
-            .next()
-            .vertex()
-            .handle;
+        let v2 = mesh.face(f0).root_edge().next().next().vertex().handle;
 
         // let v0 = mesh.add(Vertex::at_point(points[0]));
         // let v1 = mesh.add(Vertex::at_point(points[1]));

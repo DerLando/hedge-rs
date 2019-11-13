@@ -1,9 +1,6 @@
-
+use crate::data::{ElementStatus, Generation, Index, Tag};
+use crate::handles::{FaceHandle, HalfEdgeHandle};
 use std::cell::{Ref, RefMut};
-use crate::handles::{
-    HalfEdgeHandle, FaceHandle,
-};
-use crate::data::{Tag, Generation, Index, ElementStatus};
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
@@ -49,17 +46,26 @@ pub trait Storable {
 }
 
 /// Interface for adding elements to a `Mesh`.
-pub trait AddElement<E> where E: Element {
+pub trait AddElement<E>
+where
+    E: Element,
+{
     fn add(&mut self, element: E) -> E::Handle;
 }
 
 /// Interface for removing elements to a `Mesh`.
-pub trait RemoveElement<H> where H: ElementHandle {
+pub trait RemoveElement<H>
+where
+    H: ElementHandle,
+{
     fn remove(&mut self, handle: H);
 }
 
 /// Interface for getting an element reference.
-pub trait GetElement<H> where H: ElementHandle {
+pub trait GetElement<H>
+where
+    H: ElementHandle,
+{
     fn get(&self, handle: H) -> Option<&<H as ElementHandle>::Element>;
 }
 

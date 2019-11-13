@@ -1,11 +1,10 @@
-
-use std::marker::PhantomData;
-use std::hash::{Hash, Hasher};
 use std::cmp;
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
-use crate::traits::{IsValid, ElementHandle, Element};
-use crate::data::{Index, Generation};
-use crate::elements::{HalfEdge, Face, Vertex, Point};
+use crate::data::{Generation, Index};
+use crate::elements::{Face, HalfEdge, Point, Vertex};
+use crate::traits::{Element, ElementHandle, IsValid};
 
 /// Our default value for uninitialized or unconnected components in the mesh.
 pub const INVALID_COMPONENT_INDEX: Index = std::u32::MAX;
@@ -51,7 +50,6 @@ impl<T: Element> ElementHandle for Handle<T> {
         }
     }
 
-
     fn with_generation(index: Index, generation: Generation) -> Self {
         Handle {
             index,
@@ -81,8 +79,7 @@ impl<T> PartialEq for Handle<T> {
         if self.generation == IGNORED_GENERATION {
             self.index.eq(&other.index)
         } else {
-            self.index.eq(&other.index) &&
-                self.generation.eq(&other.generation)
+            self.index.eq(&other.index) && self.generation.eq(&other.generation)
         }
     }
 }
