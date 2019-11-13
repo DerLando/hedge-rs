@@ -1,13 +1,14 @@
 
+use log;
 use std::fmt;
 use std::sync::atomic;
 
 use crate::kernel::Kernel;
 use crate::elements::{
-    Face, HalfEdge, Vertex
+    Face, Vertex
 };
 use crate::data::{
-    Tag, HalfEdgeData, VertexData, PointData,
+    Tag,
 };
 use crate::handles::{
     HalfEdgeHandle, FaceHandle,
@@ -34,14 +35,16 @@ impl fmt::Debug for Mesh {
     }
 }
 
-impl Mesh {
-    pub fn new() -> Mesh {
+impl Default for Mesh {
+    fn default() -> Self {
         Mesh {
             kernel: Kernel::default(),
             tag: atomic::AtomicU32::new(1),
         }
     }
+}
 
+impl Mesh {
     pub fn next_tag(&self) -> Tag {
         self.tag.fetch_add(1, atomic::Ordering::SeqCst)
     }
@@ -117,6 +120,25 @@ impl Mesh {
     {
         self.kernel.get(handle)
     }
+
+    pub fn calculate_normals(&self) {
+        unimplemented!()
+    }
+}
+
+impl<'a> MakeEdge<(VertexHandle, VertexHandle)> for Mesh {
+    fn make_edge(
+        &mut self,
+        (v0, v1): (VertexHandle, VertexHandle)
+    ) -> (HalfEdgeHandle, HalfEdgeHandle) {
+        let (e0, e1) = self.kernel.new_edge();
+        if let Some(e) = self.get(e0) { e.data_mut().vertex = v0; }
+        if let Some(e) = self.get(e1) { e.data_mut().vertex = v1; }
+        if let Some(v) = self.get(v0) { v.data_mut().edge = e0; }
+        if let Some(v) = self.get(v1) { v.data_mut().edge = e1; }
+
+        (e0, e1)
+    }
 }
 
 impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
@@ -127,13 +149,7 @@ impl<'a> MakeEdge<(PointHandle, PointHandle)> for Mesh {
         let v0 = self.add(Vertex::at_point(p0));
         let v1 = self.add(Vertex::at_point(p1));
 
-        let (e0, e1) = self.kernel.new_edge();
-        self.get(e0).map(|e| e.data_mut().vertex = v0);
-        self.get(e1).map(|e| e.data_mut().vertex = v1);
-        self.get(v0).map(|v| v.data_mut().edge = e0);
-        self.get(v1).map(|v| v.data_mut().edge = e1);
-
-        return (e0, e1);
+        self.make_edge((v0, v1))
     }
 }
 
@@ -143,9 +159,8 @@ impl<'a> MakeEdge<(PointHandle, PointHandle, FaceHandle)> for Mesh {
         (p0, p1, face): (PointHandle, PointHandle, FaceHandle)
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let (e0, e1) = self.make_edge((p0, p1));
-        self.get(e0).map(|e| e.data_mut().face = face);
-        self.get(e1).map(|e| e.data_mut().face = face);
-        return (e0, e1);
+        if let Some(e) = self.get(e0) { e.data_mut().face = face; }
+        (e0, e1)
     }
 }
 
@@ -155,23 +170,17 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
         (e0, p1): (HalfEdgeHandle, PointHandle)
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let p0 = {
-            match self.edge(e0).prev().adjacent().vertex().data() {
+            match self.edge(e0).adjacent().vertex().data() {
                 Some(data) => data.point,
                 None => {
+                    // Returning two invalid edge handles sucks.
+                    // This entire adventure is just an enormous mess sometimes.
+                    // I really hope to maybe find some route back to sanity.
                     return (Default::default(), Default::default());
                 }
             }
         };
-        let v0 = self.add(Vertex::at_point(p0));
-        let v1 = self.add(Vertex::at_point(p1));
-
-        let (e0, e1) = self.kernel.new_edge();
-        self.get(e0).map(|e| e.data_mut().vertex = v0);
-        self.get(e1).map(|e| e.data_mut().vertex = v1);
-        self.get(v0).map(|v| v.data_mut().edge = e0);
-        self.get(v1).map(|v| v.data_mut().edge = e1);
-
-        return (e0, e1);
+        self.make_edge((p0, p1))
     }
 }
 
@@ -181,9 +190,8 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle, FaceHandle)> for Mesh {
         (e0, p1, face): (HalfEdgeHandle, PointHandle, FaceHandle)
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let edge_pair = self.make_edge((e0, p1));
-        self.get(edge_pair.0).map(|e| e.data_mut().face = face);
-        self.get(edge_pair.1).map(|e| e.data_mut().face = face);
-        return edge_pair;
+        if let Some(e) = self.get(edge_pair.0) { e.data_mut().face = face; }
+        edge_pair
     }
 }
 
@@ -192,7 +200,28 @@ impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
         &mut self,
         (e0, e2): (HalfEdgeHandle, HalfEdgeHandle)
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
-        unimplemented!()
+        let p0 = {
+            match self.edge(e0).adjacent().vertex().data() {
+                Some(data) => data.point,
+                None => {
+                    // Returning two invalid edge handles sucks.
+                    // This entire adventure is just an enormous mess sometimes.
+                    // I really hope to maybe find some route back to sanity.
+                    log::error!("Unable to find the first point of the new edge.");
+                    return (Default::default(), Default::default());
+                }
+            }
+        };
+        let p1 = {
+            match self.edge(e2).vertex().data() {
+                Some(data) => data.point,
+                None => {
+                    log::error!("Unable to find the second point of the new edge.");
+                    return (Default::default(), Default::default());
+                }
+            }
+        };
+        self.make_edge((p0, p1))
     }
 }
 
@@ -202,9 +231,8 @@ impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle, FaceHandle)> for Mesh {
         (e0, e2, face): (HalfEdgeHandle, HalfEdgeHandle, FaceHandle)
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         let edge_pair = self.make_edge((e0, e2));
-        self.get(edge_pair.0).map(|e| e.data_mut().face = face);
-        self.get(edge_pair.1).map(|e| e.data_mut().face = face);
-        return edge_pair;
+        if let Some(e) = self.get(edge_pair.0) { e.data_mut().face = face; }
+        edge_pair
     }
 }
 
@@ -216,12 +244,7 @@ impl<'a> AddFace<&'a [PointHandle]> for Mesh {
         let root_point = points[0];
         let current_point = points[1];
         let (root_edge, _) = self.make_edge((root_point, current_point, f0));
-        let mut previous_edge = root_edge;
-        for current_point in points.split_at(2).1 {
-            // TODO: make edge from edge to point
-            //previous_edge =
-        }
-        unimplemented!()
+        self.add_face((root_edge, points.split_at(2).1, f0))
     }
 }
 
@@ -230,7 +253,25 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle])> for Mesh {
         &mut self,
         (edge_handle, points): (HalfEdgeHandle, &'a [PointHandle])
     ) -> FaceHandle {
-        unimplemented!()
+        assert!(points.len() >= 1);
+        let f0 = self.add(Face::default());
+        self.add_face((edge_handle, points, f0))
+    }
+}
+
+impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
+    fn add_face(
+        &mut self,
+        (root_edge, points, f0): (HalfEdgeHandle, &'a [PointHandle], FaceHandle)
+    ) -> FaceHandle {
+        assert!(points.len() >= 1);
+        let mut previous_edge = root_edge;
+        for current_point in points {
+            let edge_pair = self.make_edge((previous_edge, *current_point, f0));
+            previous_edge = edge_pair.0;
+        }
+        let _ = self.make_edge((previous_edge, root_edge, f0));
+        f0
     }
 }
 
@@ -241,7 +282,6 @@ mod tests {
     use crate::elements::{
         HalfEdge, Face, Point, Vertex
     };
-    use crate::utils;
     use log::*;
 
     #[test]
@@ -260,7 +300,7 @@ mod tests {
         let point = Point::default();
         debug!("{:?}", point);
 
-        let mesh = Mesh::new();
+        let mesh = Mesh::default();
         debug!("{:?}", mesh);
     }
 
@@ -306,7 +346,7 @@ mod tests {
     #[test]
     fn default_point_is_valid_after_added_to_mesh() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         let phnd = {
             let point = Point::default();
@@ -320,7 +360,7 @@ mod tests {
     #[test]
     fn initial_mesh_has_default_elements() {
         let _ = env_logger::try_init();
-        let mesh = Mesh::new();
+        let mesh = Mesh::default();
 
         assert_eq!(mesh.edge_count(), 0);
         assert_eq!(mesh.get(HalfEdgeHandle::new(0)).is_some(), false);
@@ -342,7 +382,7 @@ mod tests {
     #[test]
     fn can_add_and_remove_vertices() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
         let v0 = mesh.add(Vertex::default());
         assert_eq!(mesh.vertex_count(), 1);
         assert_eq!(mesh.kernel.vertex_buffer.len(), 2);
@@ -354,31 +394,47 @@ mod tests {
     #[test]
     fn can_add_and_remove_edges() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
         let e0 = mesh.add(HalfEdge::default());
         assert_eq!(mesh.edge_count(), 1);
         assert_eq!(mesh.kernel.edge_buffer.len(), 2);
         mesh.remove(e0);
         assert_eq!(mesh.edge_count(), 0);
         assert_eq!(mesh.kernel.edge_buffer.len(), 1);
+
+        let p0 = mesh.add(Point::from_position(0.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
+        let (e0, e1) = mesh.make_edge((p0, p1));
+        assert!(mesh.edge(e0).is_boundary());
+        assert!(mesh.edge(e1).is_boundary());
     }
 
     #[test]
     fn can_add_and_remove_faces() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
         let f0 = mesh.add(Face::default());
         assert_eq!(mesh.face_count(), 1);
         assert_eq!(mesh.kernel.face_buffer.len(), 2);
         mesh.remove(f0);
         assert_eq!(mesh.face_count(), 0);
         assert_eq!(mesh.kernel.face_buffer.len(), 1);
+
+        let p0 = mesh.add(Point::from_position(0.0, 0.0, 0.0));
+        let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
+        let p2 = mesh.add(Point::from_position(1.0, 1.0, 0.0));
+
+        let f0 = mesh.add_face([p0, p1, p2].as_ref());
+        assert!(f0.is_valid());
+        assert!(mesh.face(f0).root_edge().is_boundary());
+        assert!(mesh.face(f0).root_edge().next().is_boundary());
+        assert!(mesh.face(f0).root_edge().prev().is_boundary());
     }
 
     #[test]
     fn can_add_and_remove_points() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
         let p0 = mesh.add(Point::default());
         assert_eq!(mesh.point_count(), 1);
         assert_eq!(mesh.kernel.point_buffer.len(), 2);
@@ -387,46 +443,45 @@ mod tests {
         assert_eq!(mesh.kernel.point_buffer.len(), 1);
     }
 
+    #[inline]
+    fn point(edge: &HalfEdgeProxy) -> PointHandle {
+        edge.vertex().data().map(|d| d.point).unwrap_or_else(Default::default)
+    }
+
     #[test]
     fn can_build_a_simple_mesh_manually() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
         let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
         let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add(Vertex::at_point(p0));
-        let v1 = mesh.add(Vertex::at_point(p1));
-        let v2 = mesh.add(Vertex::at_point(p2));
+        let f0 = mesh.add_face([p0, p1, p2].as_ref());
 
-        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
-        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
-        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+        let edges: Vec<HalfEdgeProxy> = mesh.edges().collect();
 
-        let f0 = mesh.add(Face::default());
-        utils::assign_face_to_loop(&mesh, e0, f0);
+        dbg!(&edges);
+        assert_eq!(edges.len(), mesh.edge_count());
+        assert_eq!(edges.len(), 6);
 
-        assert!(mesh.edge(e0).is_boundary());
-        assert!(mesh.edge(e1).is_boundary());
-        assert!(mesh.edge(e2).is_boundary());
-        assert_eq!(mesh.edge(e0).face().handle, f0);
-        assert_eq!(mesh.edge(e1).face().handle, f0);
-        assert_eq!(mesh.edge(e2).face().handle, f0);
+        assert!(edges[0].is_boundary());
+        assert!(edges[2].is_boundary());
+        assert!(edges[4].is_boundary());
 
-        assert_eq!(mesh.edge(e0).vertex().handle, v0);
-        assert_eq!(mesh.edge(e1).vertex().handle, v1);
-        assert_eq!(mesh.edge(e2).vertex().handle, v2);
+        assert_eq!(edges[0].face().handle, f0);
+        assert_eq!(edges[2].face().handle, f0);
+        assert_eq!(edges[4].face().handle, f0);
 
-        assert_eq!(mesh.edge(e0).adjacent().vertex().handle, v1);
-        assert_eq!(mesh.edge(e1).adjacent().vertex().handle, v2);
-        assert_eq!(mesh.edge(e2).adjacent().vertex().handle, v0);
+        assert_eq!(point(&edges[0]), p0);
+        assert_eq!(point(&edges[2]), p1);
+        assert_eq!(point(&edges[4]), p2);
     }
 
     #[test]
     fn can_iterate_over_faces() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         mesh.add(Face::new(HalfEdgeHandle::new(1)));
         mesh.add(Face::new(HalfEdgeHandle::new(4)));
@@ -447,7 +502,7 @@ mod tests {
     #[test]
     fn can_iterate_over_vertices() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         mesh.add(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));
         mesh.add(Vertex::new(HalfEdgeHandle::new(1), PointHandle::new(1)));

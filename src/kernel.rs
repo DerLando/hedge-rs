@@ -33,6 +33,10 @@ impl<E: Element> fmt::Debug for ElementBuffer<E> {
 }
 
 impl<E: Element> ElementBuffer<E> {
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the number of currently active cells.
     /// The actual number of items allocated by the buffer might
     /// be different.
@@ -58,7 +62,7 @@ impl<E: Element> ElementBuffer<E> {
     pub fn enumerate(&self) -> Enumerate<Iter<E>> {
         let mut it = self.buffer.iter().enumerate();
         let _ = it.next(); // Always skip the first element since we know it's invalid
-        return it;
+        it
     }
 
     pub fn active_cells(&self) -> impl Iterator<Item = (usize, &E)> {
@@ -109,14 +113,14 @@ impl<E: Element> ElementBuffer<E> {
             *cell = element;
             cell.set_status(ElementStatus::ACTIVE);
             cell.set_generation(handle.generation());
-            return handle;
+            handle
         } else {
             let handle = E::Handle::with_generation(self.buffer.len() as u32, element.generation());
             self.buffer.push(element);
             if let Some(element) = self.buffer.get_mut(handle.index() as usize) {
                 element.set_status(ElementStatus::ACTIVE);
             }
-            return handle;
+            handle
         }
     }
 
@@ -152,14 +156,7 @@ impl<E: Element> ElementBuffer<E> {
             .rev()
             .find(|e| e.1.is_active())
             .map(|e| e.0);
-        if active_offset.is_none() || inactive_offset.is_none() {
-            // If we can't find both an active and inactive cell
-            // offset then we have nothing to do.
-            debug!("No more swap pairs!");
-            None
-        } else {
-            let inactive_offset = inactive_offset.unwrap();
-            let active_offset = active_offset.unwrap();
+        if let (Some(active_offset), Some(inactive_offset)) = (active_offset, inactive_offset) {
             if active_offset < inactive_offset {
                 debug!("Buffer appears to be successfully sorted!");
                 // by the time this is true we should have sorted/swapped
@@ -169,6 +166,11 @@ impl<E: Element> ElementBuffer<E> {
             } else {
                 Some((inactive_offset as u32, active_offset as u32))
             }
+        } else {
+            // If we can't find both an active and inactive cell
+            // offset then we have nothing to do.
+            debug!("No more swap pairs!");
+            None
         }
     }
 }
@@ -195,7 +197,7 @@ impl Kernel {
             }
             _ => panic!("Invalid edge handles specified: {:?}, {:?}", e0, e1),
         }
-        return (e0, e1);
+        (e0, e1)
     }
 
     fn defrag_faces(&mut self) {
@@ -285,51 +287,47 @@ impl Kernel {
             // swap the first active cell from the end of the
             // buffer with first inactive cell from the front
             // of the buffer.
-            loop {
-                if let Some(indices) = self.edge_buffer.next_swap_pair() {
-                    let inactive_handle = indices.0;
-                    let active_handle = indices.1;
+            while let Some(indices) = self.edge_buffer.next_swap_pair() {
+                let inactive_handle = indices.0;
+                let active_handle = indices.1;
 
-                    self.edge_buffer
-                        .buffer
-                        .swap(inactive_handle as usize, active_handle as usize);
-                    let swapped = &self.edge_buffer.buffer[inactive_handle as usize];
-                    let swapped_data = swapped.data();
-                    let swapped_handle = <HalfEdge as Element>::Handle::with_generation(
-                        inactive_handle as u32,
-                        swapped.generation(),
-                    );
+                self.edge_buffer
+                    .buffer
+                    .swap(inactive_handle as usize, active_handle as usize);
+                let swapped = &self.edge_buffer.buffer[inactive_handle as usize];
+                let swapped_data = swapped.data();
+                let swapped_handle = <HalfEdge as Element>::Handle::with_generation(
+                    inactive_handle as u32,
+                    swapped.generation(),
+                );
 
-                    if let Some(next_edge) = self.edge_buffer.get(swapped_data.next) {
-                        next_edge.data_mut().prev = swapped_handle;
-                    }
-                    if let Some(prev_edge) = self.edge_buffer.get(swapped_data.prev) {
-                        prev_edge.data_mut().next = swapped_handle;
-                    }
-                    if let Some(twin_edge) = self.edge_buffer.get(swapped_data.adjacent) {
-                        twin_edge.data_mut().adjacent = swapped_handle;
-                    }
+                if let Some(next_edge) = self.edge_buffer.get(swapped_data.next) {
+                    next_edge.data_mut().prev = swapped_handle;
+                }
+                if let Some(prev_edge) = self.edge_buffer.get(swapped_data.prev) {
+                    prev_edge.data_mut().next = swapped_handle;
+                }
+                if let Some(twin_edge) = self.edge_buffer.get(swapped_data.adjacent) {
+                    twin_edge.data_mut().adjacent = swapped_handle;
+                }
 
-                    // For faces and vertices we only want to update the
-                    // associated edge handle when it matched the original
-                    // buffer location.
-                    // I'm doing this in case the associated root edge
-                    // handle for these elements is meaningful or important.
+                // For faces and vertices we only want to update the
+                // associated edge handle when it matched the original
+                // buffer location.
+                // I'm doing this in case the associated root edge
+                // handle for these elements is meaningful or important.
 
-                    if let Some(face) = self.face_buffer.get(swapped_data.face) {
-                        let mut face_data = face.data_mut();
-                        if face_data.root_edge.index() == active_handle {
-                            face_data.root_edge = swapped_handle;
-                        }
+                if let Some(face) = self.face_buffer.get(swapped_data.face) {
+                    let mut face_data = face.data_mut();
+                    if face_data.root_edge.index() == active_handle {
+                        face_data.root_edge = swapped_handle;
                     }
-                    if let Some(vertex) = self.vertex_buffer.get(swapped_data.vertex) {
-                        let mut vertex_data = vertex.data_mut();
-                        if vertex_data.edge.index() == active_handle {
-                            vertex_data.edge = swapped_handle;
-                        }
+                }
+                if let Some(vertex) = self.vertex_buffer.get(swapped_data.vertex) {
+                    let mut vertex_data = vertex.data_mut();
+                    if vertex_data.edge.index() == active_handle {
+                        vertex_data.edge = swapped_handle;
                     }
-                } else {
-                    break;
                 }
             }
             self.edge_buffer.truncate_inactive();
@@ -347,29 +345,25 @@ impl Kernel {
             // at its original location.
             // This also means we can't use the more
             // convienient sort approach.
-            loop {
-                if let Some(offsets) = self.point_buffer.next_swap_pair() {
-                    let inactive_offset = offsets.0;
-                    let active_offset = offsets.1;
+            while let Some(offsets) = self.point_buffer.next_swap_pair() {
+                let inactive_offset = offsets.0;
+                let active_offset = offsets.1;
 
-                    self.point_buffer
-                        .buffer
-                        .swap(inactive_offset as usize, active_offset as usize);
-                    let swapped = &self.point_buffer.buffer[inactive_offset as usize];
-                    let swapped_handle = <Point as Element>::Handle::with_generation(
-                        inactive_offset as u32,
-                        swapped.generation(),
-                    );
+                self.point_buffer
+                    .buffer
+                    .swap(inactive_offset as usize, active_offset as usize);
+                let swapped = &self.point_buffer.buffer[inactive_offset as usize];
+                let swapped_handle = <Point as Element>::Handle::with_generation(
+                    inactive_offset as u32,
+                    swapped.generation(),
+                );
 
-                    self.vertex_buffer.buffer[1..]
-                        .iter()
-                        .filter(|v| v.is_active() && v.data().point.index() == active_offset)
-                        .for_each(|v| {
-                            v.data_mut().point = swapped_handle;
-                        });
-                } else {
-                    break;
-                }
+                self.vertex_buffer.buffer[1..]
+                    .iter()
+                    .filter(|v| v.is_active() && v.data().point.index() == active_offset)
+                    .for_each(|v| {
+                        v.data_mut().point = swapped_handle;
+                    });
             }
             self.vertex_buffer.truncate_inactive();
         }
@@ -478,6 +472,7 @@ mod tests {
     use crate::traits::Element;
     use crate::data::{FaceData, HalfEdgeData, VertexData};
     use crate::handles::HalfEdgeHandle;
+
 
 
 
@@ -619,9 +614,9 @@ mod tests {
         let _ = env_logger::try_init();
         let mut kernel = Kernel::default();
 
-        let e0 = new_edge(&mut kernel);
-        let e1 = new_edge(&mut kernel);
-        let e2 = new_edge(&mut kernel);
+        let (e0, _) = kernel.new_edge();
+        let (e1, _) = kernel.new_edge();
+        let (e2, _) = kernel.new_edge();
 
         let v0_0 = connect_edges(&mut kernel, e0, e1);
         let v0_1 = connect_edges(&mut kernel, e1, e2);
@@ -662,23 +657,23 @@ mod tests {
         let _ = env_logger::try_init();
         let mut kernel = Kernel::default();
 
-        let e0 = new_edge(&mut kernel);
-        let e1 = new_edge(&mut kernel);
-        let e2 = new_edge(&mut kernel);
+        let (e0, _) = kernel.new_edge();
+        let (e1, _) = kernel.new_edge();
+        let (e2, _) = kernel.new_edge();
         let _v0 = connect_edges(&mut kernel, e0, e1);
         let _v1 = connect_edges(&mut kernel, e1, e2);
         let _v2 = connect_edges(&mut kernel, e2, e0);
 
         let e3 = get_twin(&kernel, e0);
-        let e4 = new_edge(&mut kernel);
-        let e5 = new_edge(&mut kernel);
+        let (e4, _) = kernel.new_edge();
+        let (e5, _) = kernel.new_edge();
         let _v3 = connect_edges(&mut kernel, e3, e4);
         let _v4 = connect_edges(&mut kernel, e4, e5);
         let _v5 = connect_edges(&mut kernel, e5, e3);
 
         let e6 = get_twin(&kernel, e4);
         let e7 = get_twin(&kernel, e2);
-        let e8 = new_edge(&mut kernel);
+        let (e8, _) = kernel.new_edge();
         let _v6 = connect_edges(&mut kernel, e6, e7);
         let _v7 = connect_edges(&mut kernel, e7, e8);
         let _v8 = connect_edges(&mut kernel, e8, e6);

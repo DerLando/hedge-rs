@@ -82,7 +82,7 @@ impl Default for PointData {
 }
 
 impl PointData {
-    pub fn new(position: Position, normal: Normal) -> Self {
+    pub fn new(position: Position, _normal: Normal) -> Self {
         PointData {
             position,
         }
@@ -91,9 +91,15 @@ impl PointData {
     pub fn from_position(position: Position) -> Self {
         PointData {
             position,
-            ..Default::default()
+            //..Default::default()
         }
     }
 }
 
 impl ElementData for PointData {}
+
+#[allow(unused)]
+struct TriangleList {
+    indices: Vec<u16>,
+    vertices: Vec<f32>,
+}

@@ -30,13 +30,11 @@ pub fn build_full_edge(
             ..HalfEdgeData::default()
         }));
 
-    if let Some(edge) = mesh.get(e0) {
-        edge.data_mut().adjacent = e1;
-    }
-    mesh.get(v0).map(|e| e.data_mut().edge = e0);
-    mesh.get(v1).map(|e| e.data_mut().edge = e1);
+    if let Some(e) = mesh.get(e0) { e.data_mut().adjacent = e1; }
+    if let Some(v) = mesh.get(v0) { v.data_mut().edge = e0; }
+    if let Some(v) = mesh.get(v1) { v.data_mut().edge = e1; }
 
-    return e0;
+    e0
 }
 
 pub fn build_half_edge(
@@ -55,7 +53,7 @@ pub fn build_half_edge(
     mesh.get(adjacent).map(|e| e.data_mut().adjacent = e0);
     mesh.get(vertex).map(|v| v.data_mut().edge = e0);
 
-    return e0;
+    e0
 }
 
 pub fn assoc_vert_edge(
@@ -78,7 +76,7 @@ pub fn build_full_edge_from(
         build_full_edge(mesh, v0, v1)
     };
     connect_edges(mesh, prev, e0);
-    return e0;
+    e0
 }
 
 pub fn close_edge_loop(

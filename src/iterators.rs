@@ -19,7 +19,7 @@ impl<'mesh> VertexCirculator<'mesh> {
             last_edge: None,
             central_point: vert.data()
                 .map(|d| d.point)
-                .unwrap_or(PointHandle::default())
+                .unwrap_or_else(Default::default)
         }
     }
 }
@@ -139,35 +139,39 @@ mod tests {
     #[test]
     fn can_iterate_over_edges_of_face() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
         let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
         let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add(Vertex::at_point(p0));
-        let v1 = mesh.add(Vertex::at_point(p1));
-        let v2 = mesh.add(Vertex::at_point(p2));
+        let f0 = mesh.add_face([p0, p1, p2].as_ref());
+        assert!(f0.is_valid());
 
-        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
-        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
-        let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+        // let v0 = mesh.add(Vertex::at_point(p0));
+        // let v1 = mesh.add(Vertex::at_point(p1));
+        // let v2 = mesh.add(Vertex::at_point(p2));
 
-        let f0 = mesh.add(Face::default());
-        utils::assign_face_to_loop(&mesh, e0, f0);
+        // let e0 = utils::build_full_edge(&mut mesh, v0, v1);
+        // let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
+        // let e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+
+        // let f0 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(&mesh, e0, f0);
+
+        let edges: Vec<HalfEdgeProxy> = mesh.face(f0).edges().collect();
+        assert_eq!(edges.len(), 3);
 
         let mut iter_count = 0;
         for edge in mesh.face(f0).edges() {
             assert!(iter_count < 3);
-            if edge.handle == e0 {
-                iter_count += 1;
-            } else if edge.handle == e1 {
-                iter_count += 1;
-            } else if edge.handle == e2 {
-                iter_count += 1;
-            } else {
-                unreachable!();
+            match iter_count {
+                0 => assert_eq!(edge.vertex().data().map(|d| d.point), Some(p0)),
+                1 => assert_eq!(edge.vertex().data().map(|d| d.point), Some(p1)),
+                2 => assert_eq!(edge.vertex().data().map(|d| d.point), Some(p2)),
+                _ => unreachable!(),
             }
+            iter_count += 1;
         }
         assert_eq!(iter_count, 3);
     }
@@ -175,93 +179,115 @@ mod tests {
     #[test]
     fn can_iterate_over_vertices_of_face() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         let p0 = mesh.add(Point::from_position(-1.0, 0.0, 0.0));
         let p1 = mesh.add(Point::from_position(1.0, 0.0, 0.0));
         let p2 = mesh.add(Point::from_position(0.0, 1.0, 0.0));
 
-        let v0 = mesh.add(Vertex::at_point(p0));
-        let v1 = mesh.add(Vertex::at_point(p1));
-        let v2 = mesh.add(Vertex::at_point(p2));
+        let f0 = mesh.add_face([p0, p1, p2].as_ref());
+        assert!(f0.is_valid());
 
-        let e0 = utils::build_full_edge(&mut mesh, v0, v1);
-        let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
-        let _e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+        // let v0 = mesh.add(Vertex::at_point(p0));
+        // let v1 = mesh.add(Vertex::at_point(p1));
+        // let v2 = mesh.add(Vertex::at_point(p2));
 
-        let f0 = mesh.add(Face::default());
-        utils::assign_face_to_loop(&mesh, e0, f0);
+        // let e0 = utils::build_full_edge(&mut mesh, v0, v1);
+        // let e1 = utils::build_full_edge_from(&mut mesh, e0, v2);
+        // let _e2 = utils::close_edge_loop(&mut mesh, e1, e0);
+
+        // let f0 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(&mesh, e0, f0);
 
         let mut iter_count = 0;
         for vert in mesh.face(f0).vertices() {
+            assert!(vert.is_valid());
             assert!(iter_count < 3);
-            if vert.handle == v0 {
-                iter_count += 1;
-            } else if vert.handle == v1 {
-                iter_count += 1;
-            } else if vert.handle == v2 {
-                iter_count += 1;
-            } else {
-                unreachable!();
+            match iter_count {
+                0 => assert_eq!(vert.data().map(|d| d.point), Some(p0)),
+                1 => assert_eq!(vert.data().map(|d| d.point), Some(p1)),
+                2 => assert_eq!(vert.data().map(|d| d.point), Some(p2)),
+                _ => unreachable!(),
             }
+            iter_count += 1;
         }
         assert_eq!(iter_count, 3);
     }
 
     fn build_fan(points: [PointHandle; 5], mesh: &mut Mesh) -> VertexHandle {
-        let v0 = mesh.add(Vertex::at_point(points[0]));
-        let v1 = mesh.add(Vertex::at_point(points[1]));
-        let v2 = mesh.add(Vertex::at_point(points[4]));
+        let f0 = mesh.add_face([points[0], points[1], points[4]].as_ref());
+        assert!(f0.is_valid());
 
-        let e0 = utils::build_full_edge(mesh, v0, v1);
-        let e1 = utils::build_full_edge_from(mesh, e0, v2);
-        let e2 = utils::close_edge_loop(mesh, e1, e0);
+        let v2 = mesh
+            .face(f0)
+            .root_edge()
+            .next()
+            .next()
+            .vertex()
+            .handle;
 
-        let f0 = mesh.add(Face::default());
-        utils::assign_face_to_loop(mesh, e0, f0);
+        // let v0 = mesh.add(Vertex::at_point(points[0]));
+        // let v1 = mesh.add(Vertex::at_point(points[1]));
+        // let v2 = mesh.add(Vertex::at_point(points[4]));
 
-        /////////////////////////////////
+        // let e0 = utils::build_full_edge(mesh, v0, v1);
+        // let e1 = utils::build_full_edge_from(mesh, e0, v2);
+        // let e2 = utils::close_edge_loop(mesh, e1, e0);
 
-        let v3 = mesh.add(Vertex::at_point(points[1]));
-        let _v4 = mesh.add(Vertex::at_point(points[2]));
-        let v5 = mesh.add(Vertex::at_point(points[4]));
-
-        let e3 = mesh.edge(e1).adjacent().handle;
-        utils::assoc_vert_edge(mesh, v5, e3);
-        let e4 = utils::build_full_edge_from(mesh, e3, v3);
-        let e5 = utils::close_edge_loop(mesh, e4, e3);
-
-        let f1 = mesh.add(Face::default());
-        utils::assign_face_to_loop(mesh, e3, f1);
+        // let f0 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(mesh, e0, f0);
 
         /////////////////////////////////
 
-        let v6 = mesh.add(Vertex::at_point(points[2]));
-        let _v7 = mesh.add(Vertex::at_point(points[3]));
-        let v8 = mesh.add(Vertex::at_point(points[4]));
+        let f1 = mesh.add_face([points[1], points[2], points[4]].as_ref());
+        assert!(f1.is_valid());
 
-        let e6 = mesh.edge(e5).adjacent().handle;
-        utils::assoc_vert_edge(mesh, v8, e6);
-        let e7 = utils::build_full_edge_from(mesh, e6, v6);
-        let e8 = utils::close_edge_loop(mesh, e7, e6);
+        // let v3 = mesh.add(Vertex::at_point(points[1]));
+        // let _v4 = mesh.add(Vertex::at_point(points[2]));
+        // let v5 = mesh.add(Vertex::at_point(points[4]));
 
-        let f2 = mesh.add(Face::default());
-        utils::assign_face_to_loop(mesh, e6, f2);
+        // let e3 = mesh.edge(e1).adjacent().handle;
+        // utils::assoc_vert_edge(mesh, v5, e3);
+        // let e4 = utils::build_full_edge_from(mesh, e3, v3);
+        // let e5 = utils::close_edge_loop(mesh, e4, e3);
+
+        // let f1 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(mesh, e3, f1);
 
         /////////////////////////////////
 
-        let _v9  = mesh.add(Vertex::at_point(points[3]));
-        let _v10 = mesh.add(Vertex::at_point(points[0]));
-        let v11 = mesh.add(Vertex::at_point(points[4]));
+        let f2 = mesh.add_face([points[2], points[3], points[4]].as_ref());
+        assert!(f2.is_valid());
 
-        let e9 = mesh.edge(e8).adjacent().handle;
-        utils::assoc_vert_edge(mesh, v11, e9);
-        let e11 = mesh.edge(e2).adjacent().handle;
-        utils::assoc_vert_edge(mesh, v0, e11);
-        let _e10 = utils::close_edge_loop(mesh, e9, e11);
+        // let v6 = mesh.add(Vertex::at_point(points[2]));
+        // let _v7 = mesh.add(Vertex::at_point(points[3]));
+        // let v8 = mesh.add(Vertex::at_point(points[4]));
 
-        let f3 = mesh.add(Face::default());
-        utils::assign_face_to_loop(mesh, e9, f3);
+        // let e6 = mesh.edge(e5).adjacent().handle;
+        // utils::assoc_vert_edge(mesh, v8, e6);
+        // let e7 = utils::build_full_edge_from(mesh, e6, v6);
+        // let e8 = utils::close_edge_loop(mesh, e7, e6);
+
+        // let f2 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(mesh, e6, f2);
+
+        /////////////////////////////////
+
+        let f3 = mesh.add_face([points[3], points[0], points[4]].as_ref());
+        assert!(f3.is_valid());
+
+        // let _v9  = mesh.add(Vertex::at_point(points[3]));
+        // let _v10 = mesh.add(Vertex::at_point(points[0]));
+        // let v11 = mesh.add(Vertex::at_point(points[4]));
+
+        // let e9 = mesh.edge(e8).adjacent().handle;
+        // utils::assoc_vert_edge(mesh, v11, e9);
+        // let e11 = mesh.edge(e2).adjacent().handle;
+        // utils::assoc_vert_edge(mesh, v0, e11);
+        // let _e10 = utils::close_edge_loop(mesh, e9, e11);
+
+        // let f3 = mesh.add(Face::default());
+        // utils::assign_face_to_loop(mesh, e9, f3);
 
         return v2;
     }
@@ -269,7 +295,7 @@ mod tests {
     #[test]
     fn can_iterate_around_vertex() {
         let _ = env_logger::try_init();
-        let mut mesh = Mesh::new();
+        let mut mesh = Mesh::default();
 
         let points = [
             mesh.add(Point::from_position(-1.0, 0.0, 0.0)),

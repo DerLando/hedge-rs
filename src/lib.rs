@@ -2,9 +2,6 @@
 //! An index based half-edge mesh implementation.
 //!
 
-#[cfg(feature="amethyst")]
-pub mod amethyst;
-
 pub use crate::traits::*;
 pub use crate::handles::*;
 pub use crate::data::*;
@@ -20,5 +17,5 @@ pub mod elements;
 pub mod kernel;
 pub mod proxy;
 pub mod mesh;
-pub mod utils;
+//pub mod utils;
 pub mod iterators;
