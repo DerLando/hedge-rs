@@ -359,7 +359,7 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle])> for Mesh {
             "- AddFace<(HalfEdgeHandle({}), &'a [PointHandle])>",
             root_edge.index()
         );
-        assert!(points.len() >= 1);
+        assert!(!points.is_empty());
         let f0 = self.add(Face::default());
         self.add_face((root_edge, points, f0))
     }
@@ -375,7 +375,7 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
             root_edge.index(),
             f0.index()
         );
-        assert!(points.len() >= 1);
+        assert!(!points.is_empty());
         let mut previous_edge = root_edge;
         for current_point in points {
             let edge_pair = self.make_edge((previous_edge, *current_point, f0));
@@ -449,11 +449,11 @@ impl<'a> AddFace<&[HalfEdgeHandle]> for Mesh {
 impl<'a> AddFace<(&[HalfEdgeHandle], &[PointHandle])> for Mesh {
     fn add_face(&mut self, (edges, points): (&[HalfEdgeHandle], &[PointHandle])) -> FaceHandle {
         log::trace!("- AddFace<&[HalfEdgeHandle]>");
-        assert!(edges.len() >= 1);
+        assert!(!edges.is_empty());
         if edges.len() == 1 {
-            assert!(points.len() >= 1);
+            assert!(!points.is_empty());
             self.add_face((edges[0], points))
-        } else if edges.len() == 2 && points.len() == 0 {
+        } else if edges.len() == 2 && points.is_empty() {
             self.add_face(edges)
         } else {
             let face = self.add(Face::default());
