@@ -732,4 +732,20 @@ mod tests {
 
         assert_eq!(vertices_iterated_over, mesh.vertex_count());
     }
+
+    #[test]
+    fn can_build_triangle_list() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::default();
+
+        let points = [
+            mesh.add(Point::from_position(0.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 0.0, 1.0)),
+            mesh.add(Point::from_position(0.0, 0.0, 1.0)),
+        ];
+
+        let face = mesh.add_face(points.as_ref());
+        assert_eq!(mesh.face(face).triangles().count(), 2);
+    }
 }

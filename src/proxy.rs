@@ -2,7 +2,7 @@
 
 use crate::elements::{Face, HalfEdge, Point, Vertex};
 use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
-use crate::iterators::{FaceEdges, FaceVertices, VertexCirculator};
+use crate::iterators::{FaceEdges, FaceVertices, FaceTriangles, VertexCirculator};
 use crate::mesh::Mesh;
 use crate::traits::*;
 use std::cell::{Ref, RefMut};
@@ -61,7 +61,11 @@ impl<'mesh> FaceProxy<'mesh> {
     }
 
     pub fn vertices(&self) -> FaceVertices<'mesh> {
-        FaceVertices::new(self.mesh.next_tag(), *self)
+        FaceVertices::new(*self)
+    }
+
+    pub fn triangles(&self) -> FaceTriangles<'mesh> {
+        FaceTriangles::new(*self)
     }
 }
 

@@ -44,6 +44,12 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
     }
 }
 
+#[derive(Debug)]
+pub struct VertexFaceCirculator<'mesh> {
+    inner_iter: VertexCirculator<'mesh>,
+}
+
+#[derive(Debug)]
 pub struct FaceEdges<'mesh> {
     tag: Tag,
     root_edge: HalfEdgeProxy<'mesh>,
@@ -90,18 +96,16 @@ impl<'mesh> Iterator for FaceEdges<'mesh> {
     }
 }
 
+#[derive(Debug)]
 pub struct FaceVertices<'mesh> {
     inner_iter: FaceEdges<'mesh>,
 }
 
 impl<'mesh> FaceVertices<'mesh> {
-    pub fn new(tag: Tag, face: FaceProxy<'mesh>) -> Self {
-        let inner_iter = FaceEdges {
-            tag,
-            root_edge: face.root_edge(),
-            last_edge: None,
-        };
-        FaceVertices { inner_iter }
+    pub fn new(face: FaceProxy<'mesh>) -> Self {
+        FaceVertices {
+            inner_iter: face.edges(),
+        }
     }
 }
 
@@ -110,6 +114,52 @@ impl<'mesh> Iterator for FaceVertices<'mesh> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner_iter.next().map(|edge| edge.vertex())
+    }
+}
+
+#[derive(Debug)]
+pub struct FaceNeighbors<'mesh> {
+    inner_iter: FaceEdges<'mesh>
+}
+
+impl<'mesh> FaceNeighbors<'mesh> {
+    pub fn new(face: FaceProxy<'mesh>) -> Self {
+        FaceNeighbors {
+            inner_iter: face.edges(),
+        }
+    }
+}
+
+impl<'mesh> Iterator for FaceNeighbors<'mesh> {
+    type Item = FaceProxy<'mesh>;
+
+    // TOOD: boundary edges should be skipped right?
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_iter.next().map(|edge| edge.adjacent().face())
+    }
+}
+
+pub struct FaceTriangles<'mesh> {
+    vertices: Vec<VertexProxy<'mesh>>,
+}
+
+impl<'mesh> Iterator for FaceTriangles<'mesh> {
+    type Item = (
+        &'mesh VertexProxy<'mesh>,
+        &'mesh VertexProxy<'mesh>,
+        &'mesh VertexProxy<'mesh>
+    );
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
+impl<'mesh> FaceTriangles<'mesh> {
+    pub fn new(face: FaceProxy<'mesh>) -> Self {
+        FaceTriangles {
+            vertices: face.vertices().collect(),
+        }
     }
 }
 
