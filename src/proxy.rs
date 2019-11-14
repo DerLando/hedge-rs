@@ -117,6 +117,10 @@ impl<'mesh> HalfEdgeProxy<'mesh> {
     }
 
     pub fn connect_to(&self, next: &HalfEdgeProxy) {
+        log::trace!(
+            "--- Connecting Edges {} -> {}",
+            self.handle.index(), next.handle.index()
+        );
         match (self.element(), next.element()) {
             (Some(p), Some(n)) => {
                 p.data_mut().next = next.handle;
