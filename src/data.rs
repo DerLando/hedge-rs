@@ -19,7 +19,7 @@ impl Default for VertexAttributes {
     fn default() -> Self {
         VertexAttributes {
             normal: na::zero(),
-            color: na::Vector4::identity(),
+            color: na::Vector4::new(1.0, 1.0, 1.0, 1.0),
         }
     }
 }

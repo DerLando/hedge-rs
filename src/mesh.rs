@@ -2,7 +2,7 @@ use std::fmt;
 use std::sync::atomic;
 
 use crate::data::Tag;
-use crate::elements::{Face, Vertex};
+use crate::elements::{Face, Point, Vertex};
 use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
 use crate::kernel::Kernel;
 use crate::proxy::*;
@@ -36,6 +36,61 @@ impl Default for Mesh {
 }
 
 impl Mesh {
+    pub fn unit_cube() -> Self {
+        let mut mesh = Mesh::default();
+        let p = [
+            mesh.add(Point::from_position(0.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 0.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 0.0, 1.0)),
+            mesh.add(Point::from_position(0.0, 0.0, 1.0)),
+            mesh.add(Point::from_position(0.0, 1.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 1.0, 0.0)),
+            mesh.add(Point::from_position(1.0, 1.0, 1.0)),
+            mesh.add(Point::from_position(0.0, 1.0, 1.0)),
+        ];
+
+        let front = mesh.add_face([p[0], p[1], p[5], p[4]].as_ref());
+        let back = mesh.add_face([p[2], p[3], p[7], p[6]].as_ref());
+
+        let bottom = mesh.add_face(
+            [
+                mesh.face(front).root_edge().adjacent().handle,
+                mesh.face(back).root_edge().adjacent().handle,
+            ]
+            .as_ref(),
+        );
+
+        let top = mesh.add_face(
+            [
+                mesh.face(front).root_edge().next().next().adjacent().handle,
+                mesh.face(back).root_edge().next().next().adjacent().handle,
+            ]
+            .as_ref(),
+        );
+
+        let _right = mesh.add_face(
+            [
+                mesh.face(front).root_edge().next().adjacent().handle,
+                mesh.face(bottom).root_edge().prev().adjacent().handle,
+                mesh.face(back).root_edge().prev().adjacent().handle,
+                mesh.face(top).root_edge().next().adjacent().handle,
+            ]
+            .as_ref(),
+        );
+
+        let _left = mesh.add_face(
+            [
+                mesh.face(front).root_edge().prev().adjacent().handle,
+                mesh.face(bottom).root_edge().next().adjacent().handle,
+                mesh.face(back).root_edge().next().adjacent().handle,
+                mesh.face(top).root_edge().prev().adjacent().handle,
+            ]
+            .as_ref(),
+        );
+
+        mesh
+    }
+
     pub fn next_tag(&self) -> Tag {
         self.tag.fetch_add(1, atomic::Ordering::SeqCst)
     }
@@ -341,13 +396,94 @@ impl<'a> AddFace<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
             e0.index(),
             e2.index()
         );
+        // let face = self.add(Face::default());
+        // let _edge_pair = self.make_edge((e0, e2, face));
+        // if let Some(face) = self.get(face) {
+        //     face.data_mut().root_edge = e0;
+        // }
+        // self.edge(e2).connect_to(&self.edge(e0));
+        // face
+        self.add_face([e0, e2].as_ref())
+    }
+}
+
+impl<'a> AddFace<&[HalfEdgeHandle]> for Mesh {
+    fn add_face(&mut self, edges: &[HalfEdgeHandle]) -> FaceHandle {
+        log::trace!("- AddFace<&[HalfEdgeHandle]>");
+        assert!(edges.len() >= 2);
         let face = self.add(Face::default());
-        let _edge_pair = self.make_edge((e0, e2, face));
-        if let Some(face) = self.get(face) {
-            face.data_mut().root_edge = e0;
+        let root_edge = edges[0];
+        if let Some(mut data) = self.edge(root_edge).data_mut() {
+            data.face = face;
         }
-        self.edge(e2).connect_to(&self.edge(e0));
+        let mut last_edge = root_edge;
+        for next_edge in edges.iter().skip(1) {
+            let last_point = self.edge(last_edge).adjacent().vertex().point().handle;
+            let next_point = self.edge(*next_edge).adjacent().vertex().point().handle;
+            if last_point == next_point {
+                self.edge(last_edge).connect_to(&self.edge(*next_edge));
+            } else {
+                let _ = self.make_edge((last_edge, *next_edge, face));
+            }
+
+            if let Some(edge) = self.get(*next_edge) {
+                edge.data_mut().face = face;
+            }
+            last_edge = *next_edge;
+        }
+        let root_point = self.edge(root_edge).vertex().point().handle;
+        let last_point = self.edge(last_edge).adjacent().vertex().point().handle;
+        if root_point == last_point {
+            self.edge(last_edge).connect_to(&self.edge(root_edge));
+        } else {
+            let _ = self.make_edge((last_edge, root_edge, face));
+        }
+
+        if let Some(mut data) = self.face(face).data_mut() {
+            data.root_edge = root_edge;
+        }
         face
+    }
+}
+
+impl<'a> AddFace<(&[HalfEdgeHandle], &[PointHandle])> for Mesh {
+    fn add_face(&mut self, (edges, points): (&[HalfEdgeHandle], &[PointHandle])) -> FaceHandle {
+        log::trace!("- AddFace<&[HalfEdgeHandle]>");
+        assert!(edges.len() >= 1);
+        if edges.len() == 1 {
+            assert!(points.len() >= 1);
+            self.add_face((edges[0], points))
+        } else if edges.len() == 2 && points.len() == 0 {
+            self.add_face(edges)
+        } else {
+            let face = self.add(Face::default());
+
+            let root_edge = edges[0];
+            if let Some(mut data) = self.edge(root_edge).data_mut() {
+                data.face = face;
+            }
+
+            let mut last_edge = root_edge;
+            for next_edge in edges.iter().skip(1).map(|h| self.edge(*h)) {
+                self.edge(last_edge).connect_to(&next_edge);
+                if let Some(mut data) = next_edge.data_mut() {
+                    data.face = face;
+                }
+                last_edge = next_edge.handle;
+            }
+
+            for current_point in points {
+                let edge_pair = self.make_edge((last_edge, *current_point, face));
+                last_edge = edge_pair.0;
+            }
+
+            let _ = self.make_edge((last_edge, root_edge, face));
+            if let Some(face) = self.get(face) {
+                face.data_mut().root_edge = root_edge;
+            }
+
+            face
+        }
     }
 }
 

@@ -76,3 +76,11 @@ pub trait MakeEdge<A> {
 pub trait AddFace<A> {
     fn add_face(&mut self, args: A) -> FaceHandle;
 }
+
+// pub trait Bridge<A> {
+//     fn bridge(&mut self, args: A) -> FaceHandle;
+// }
+
+// pub trait Extrude<A> {
+//     fn extrude(&mut self, args: A) -> FaceHandle;
+// }
