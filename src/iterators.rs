@@ -1,7 +1,6 @@
 //! Iterators for simple or common mesh traversal patterns.
 
 use super::*;
-use log::*;
 
 #[derive(Debug)]
 pub struct VertexCirculator<'mesh> {
@@ -14,11 +13,8 @@ pub struct VertexCirculator<'mesh> {
 impl<'mesh> VertexCirculator<'mesh> {
     pub fn new(tag: Tag, vert: VertexProxy<'mesh>) -> Self {
         assert!(vert.is_valid());
-        let central_point = vert
-            .data()
-            .map(|d| d.point)
-            .unwrap();
-        dbg!(central_point);
+        let central_point = vert.point().handle;
+        dbg!(vert.handle.index(), central_point.index());
         VertexCirculator {
             tag,
             vert,
@@ -32,42 +28,18 @@ impl<'mesh> Iterator for VertexCirculator<'mesh> {
     type Item = HalfEdgeProxy<'mesh>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.last_edge = if let Some(last_edge) = self.last_edge {
-            let next_edge = last_edge.prev().adjacent();
-            next_edge
-                .element()
-                .and_then(|e| {
-                    if e.tag() == self.tag {
-                        debug!("Encountered previously tagged edge.");
-                        None
-                    } else {
-                        e.set_tag(self.tag);
-                        Some(next_edge)
-                    }
-                })
-                .and_then(|next_edge| {
-                    if next_edge.is_boundary() {
-                        warn!("Vertex circulator terminated due to boundary edge.");
-                        None
-                    } else if let Some(phnd) = next_edge.vertex().data().map(|d| d.point) {
-                        if phnd == self.central_point {
-                            Some(next_edge)
-                        } else {
-                            warn!("Ending iteration because vertex attributes do not match.");
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                })
+        if let Some(last_edge) = self.last_edge {
+            self.last_edge = Some(last_edge.prev().adjacent());
         } else {
-            let edge = self.vert.edge();
-            edge.element().and_then(|e| {
-                e.set_tag(self.tag);
-                Some(edge)
-            })
-        };
-        dbg!(self.last_edge.map(|e| e.handle));
+            self.last_edge = Some(self.vert.edge());
+        }
+        if let Some(element) = self.last_edge.and_then(|e| e.element()) {
+            if element.tag() == self.tag {
+                return None;
+            } else {
+                element.set_tag(self.tag);
+            }
+        }
         self.last_edge
     }
 }
@@ -217,7 +189,8 @@ mod tests {
         assert_eq!(mesh.face(f2).vertices().count(), 3);
 
         let leading_edge = mesh.face(f2).root_edge().prev().adjacent().handle;
-        let f3 = mesh.add_face((leading_edge, [points[0]].as_ref()));
+        let closing_edge = mesh.face(f0).root_edge().prev().adjacent().handle;
+        let f3 = mesh.add_face((leading_edge, closing_edge));
         assert!(f3.is_valid());
         assert_eq!(mesh.face(f3).vertices().count(), 3);
 
@@ -241,13 +214,9 @@ mod tests {
 
         let root_vert = {
             let e0 = mesh.face(f0).root_edge();
-            //dbg!(e0.handle);
             let e1 = e0.next();
-            //dbg!(e1.handle);
             let e2 = e1.next();
-            //dbg!(e2.handle);
             let vert = e2.vertex();
-            //dbg!(vert);
             assert_eq!(vert.data().map(|v| v.point.index()), Some(5));
             vert
         };

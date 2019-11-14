@@ -87,6 +87,10 @@ impl Mesh {
             .active_cells()
             .map(move |(offset, _)| VertexProxy::new(VertexHandle::new(offset as u32), self))
     }
+    
+    pub fn point(&self, handle: PointHandle) -> PointProxy {
+        PointProxy::new(handle, &self)
+    }
 
     pub fn point_count(&self) -> usize {
         self.kernel.point_buffer.len() - 1
@@ -194,14 +198,7 @@ impl<'a> MakeEdge<(HalfEdgeHandle, PointHandle)> for Mesh {
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         log::trace!("- MakeEdge<(HalfEdgeHandle({}), PointHandle({}))>",
                     e0.index(), p1.index());
-        let p0 = {
-            if let Some(p0) = self.edge(e0).adjacent().vertex().data().map(|d| d.point) {
-                p0
-            } else {
-                log::error!("Invalid input edge.");
-                return (Default::default(), Default::default());
-            }
-        };
+        let p0 = self.edge(e0).adjacent().vertex().point().handle;
         let v0 = self.add(Vertex::at_point(p0));
         let v1 = self.add(Vertex::at_point(p1));
         let edge_pair = self.make_edge((v0, v1));
@@ -234,9 +231,9 @@ impl<'a> MakeEdge<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
     ) -> (HalfEdgeHandle, HalfEdgeHandle) {
         log::trace!("- MakeEdge<(HalfEdgeHandle({}), HalfEdgeHandle({}))>",
                     e0.index(), e2.index());
-        let v0 = self.edge(e0).adjacent().vertex().handle;
-        let v1 = self.edge(e2).vertex().handle;
-        let edge_pair = self.make_edge((v0, v1));
+        let p0 = self.edge(e0).adjacent().vertex().point().handle;
+        let p1 = self.edge(e2).vertex().point().handle;
+        let edge_pair = self.make_edge((p0, p1));
         let base_edge = self.edge(e0);
         let next_edge = self.edge(edge_pair.0);
         let last_edge = self.edge(e2);
@@ -266,7 +263,6 @@ impl<'a> AddFace<&'a [PointHandle]> for Mesh {
         log::trace!("- AddFace<&'a [PointHandle]>");
         assert!(points.len() >= 3);
         let f0 = self.add(Face::default());
-        log::trace!("---- Created face: {:?}", f0);
         let root_point = points[0];
         let current_point = points[1];
         let (root_edge, _) = self.make_edge((root_point, current_point, f0));
@@ -279,10 +275,10 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle])> for Mesh {
         &mut self,
         (root_edge, points): (HalfEdgeHandle, &'a [PointHandle]),
     ) -> FaceHandle {
-        log::trace!("- AddFace<(HalfEdgeHandle, &'a [PointHandle])>");
+        log::trace!("- AddFace<(HalfEdgeHandle({}), &'a [PointHandle])>",
+                    root_edge.index());
         assert!(points.len() >= 1);
         let f0 = self.add(Face::default());
-        log::trace!("---- Created face: {:?}", f0);
         self.add_face((root_edge, points, f0))
     }
 }
@@ -305,6 +301,23 @@ impl<'a> AddFace<(HalfEdgeHandle, &'a [PointHandle], FaceHandle)> for Mesh {
             face.data_mut().root_edge = root_edge;
         }
         f0
+    }
+}
+
+impl<'a> AddFace<(HalfEdgeHandle, HalfEdgeHandle)> for Mesh {
+    fn add_face(
+        &mut self, 
+        (e0, e2): (HalfEdgeHandle, HalfEdgeHandle)
+    ) -> FaceHandle {
+        log::trace!("- AddFace<(HalfEdgeHandle({}), HalfEdgeHandle({}))>",
+                    e0.index(), e2.index());
+        let face = self.add(Face::default());
+        let _edge_pair = self.make_edge((e0, e2, face));
+        if let Some(face) = self.get(face) {
+            face.data_mut().root_edge = e0;
+        }
+        self.edge(e2).connect_to(&self.edge(e0));
+        face
     }
 }
 
@@ -495,7 +508,6 @@ mod tests {
 
         let edges: Vec<HalfEdgeProxy> = mesh.edges().collect();
 
-        dbg!(&edges);
         assert_eq!(edges.len(), mesh.edge_count());
         assert_eq!(edges.len(), 6);
 

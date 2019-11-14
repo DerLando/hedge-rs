@@ -1,7 +1,7 @@
 //! Facades over a mesh and element handle to enable easy topology traversals.
 
 use crate::elements::{Face, HalfEdge, Point, Vertex};
-use crate::handles::{FaceHandle, HalfEdgeHandle, VertexHandle};
+use crate::handles::{FaceHandle, HalfEdgeHandle, VertexHandle, PointHandle};
 use crate::iterators::{FaceEdges, FaceVertices, VertexCirculator};
 use crate::mesh::Mesh;
 use crate::traits::*;
@@ -22,10 +22,12 @@ pub trait ElementProxy<'mesh, E: Element + 'mesh> {
         }
     }
 
+    #[inline]
     fn data(&'mesh self) -> Option<Ref<E::Data>> {
         self.element().map(|e| e.data())
     }
 
+    #[inline]
     fn data_mut(&'mesh self) -> Option<RefMut<E::Data>> {
         self.element().map(|e| e.data_mut())
     }
@@ -118,8 +120,10 @@ impl<'mesh> HalfEdgeProxy<'mesh> {
 
     pub fn connect_to(&self, next: &HalfEdgeProxy) {
         log::trace!(
-            "--- Connecting Edges {} -> {}",
-            self.handle.index(), next.handle.index()
+            "--- Connecting Edges {} -> v{} -> {}",
+            self.handle.index(),
+            next.vertex().handle.index(), 
+            next.handle.index()
         );
         match (self.element(), next.element()) {
             (Some(p), Some(n)) => {
@@ -172,12 +176,35 @@ impl<'mesh> VertexProxy<'mesh> {
         VertexCirculator::new(self.mesh.next_tag(), *self)
     }
 
-    pub fn point(&self) -> Option<&'mesh Point> {
-        self.data().and_then(|data| self.mesh.get(data.point))
+    pub fn point(&self) -> PointProxy<'mesh> {
+        let point_handle = self.data().map(|data| data.point);
+        PointProxy::maybe(point_handle, self.mesh)
     }
 }
 
 impl<'mesh> IsValid for VertexProxy<'mesh> {
+    fn is_valid(&self) -> bool {
+        self.element().is_some()
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct PointProxy<'mesh> {
+    mesh: &'mesh Mesh,
+    pub handle: PointHandle,
+}
+
+impl<'mesh> ElementProxy<'mesh, Point> for PointProxy<'mesh> {
+    fn new(handle: PointHandle, mesh: &'mesh Mesh) -> Self {
+        PointProxy { mesh, handle }
+    }
+
+    fn element(&self) -> Option<&'mesh Point> {
+        self.mesh.get(self.handle)
+    }
+}
+
+impl<'mesh> IsValid for PointProxy<'mesh> {
     fn is_valid(&self) -> bool {
         self.element().is_some()
     }

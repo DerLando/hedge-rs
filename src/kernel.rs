@@ -420,25 +420,35 @@ impl GetElement<FaceHandle> for Kernel {
 
 impl AddElement<Point> for Kernel {
     fn add(&mut self, element: Point) -> <Point as Element>::Handle {
-        self.point_buffer.add(element)
+        let hnd = self.point_buffer.add(element);
+        log::trace!("---- Created point: {}", hnd.index());
+        hnd
     }
 }
 
 impl AddElement<Vertex> for Kernel {
     fn add(&mut self, element: Vertex) -> <Vertex as Element>::Handle {
-        self.vertex_buffer.add(element)
+        let pindex = element.data().point.index();
+        let hnd = self.vertex_buffer.add(element);
+        log::trace!("---- Created vertex: {} @ {}", 
+                    hnd.index(), pindex);
+        hnd
     }
 }
 
 impl AddElement<HalfEdge> for Kernel {
     fn add(&mut self, element: HalfEdge) -> <HalfEdge as Element>::Handle {
-        self.edge_buffer.add(element)
+        let hnd = self.edge_buffer.add(element);
+        log::trace!("---- Created edge: {}", hnd.index());
+        hnd
     }
 }
 
 impl AddElement<Face> for Kernel {
     fn add(&mut self, element: Face) -> <Face as Element>::Handle {
-        self.face_buffer.add(element)
+        let hnd = self.face_buffer.add(element);
+        log::trace!("---- Created face: {}", hnd.index());
+        hnd
     }
 }
 
