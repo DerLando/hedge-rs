@@ -1,7 +1,7 @@
 //! Facades over a mesh and element handle to enable easy topology traversals.
 
 use crate::elements::{Face, HalfEdge, Point, Vertex};
-use crate::handles::{FaceHandle, HalfEdgeHandle, VertexHandle, PointHandle};
+use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
 use crate::iterators::{FaceEdges, FaceVertices, VertexCirculator};
 use crate::mesh::Mesh;
 use crate::traits::*;
@@ -122,7 +122,7 @@ impl<'mesh> HalfEdgeProxy<'mesh> {
         log::trace!(
             "--- Connecting Edges {} -> v{} -> {}",
             self.handle.index(),
-            next.vertex().handle.index(), 
+            next.vertex().handle.index(),
             next.handle.index()
         );
         match (self.element(), next.element()) {

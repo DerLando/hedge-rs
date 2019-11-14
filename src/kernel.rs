@@ -430,8 +430,7 @@ impl AddElement<Vertex> for Kernel {
     fn add(&mut self, element: Vertex) -> <Vertex as Element>::Handle {
         let pindex = element.data().point.index();
         let hnd = self.vertex_buffer.add(element);
-        log::trace!("---- Created vertex: {} @ {}", 
-                    hnd.index(), pindex);
+        log::trace!("---- Created vertex: {} @ {}", hnd.index(), pindex);
         hnd
     }
 }
