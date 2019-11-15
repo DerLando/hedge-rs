@@ -140,7 +140,7 @@ impl<'mesh> Iterator for FaceNeighbors<'mesh> {
 }
 
 pub struct FaceTriangles<'mesh> {
-    vertices: Vec<VertexProxy<'mesh>>,
+    _vertices: Vec<VertexProxy<'mesh>>,
 }
 
 impl<'mesh> Iterator for FaceTriangles<'mesh> {
@@ -158,7 +158,7 @@ impl<'mesh> Iterator for FaceTriangles<'mesh> {
 impl<'mesh> FaceTriangles<'mesh> {
     pub fn new(face: FaceProxy<'mesh>) -> Self {
         FaceTriangles {
-            vertices: face.vertices().collect(),
+            _vertices: face.vertices().collect(),
         }
     }
 }
