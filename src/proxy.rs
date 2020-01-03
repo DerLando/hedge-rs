@@ -2,7 +2,7 @@
 
 use crate::elements::{Face, HalfEdge, Point, Vertex};
 use crate::handles::{FaceHandle, HalfEdgeHandle, PointHandle, VertexHandle};
-use crate::iterators::{FaceEdges, FaceVertices, FaceTriangles, VertexCirculator};
+use crate::iterators::{FaceEdges, FaceTriangles, FaceVertices, VertexCirculator};
 use crate::mesh::Mesh;
 use crate::traits::*;
 use std::cell::{Ref, RefMut};

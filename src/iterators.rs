@@ -119,7 +119,7 @@ impl<'mesh> Iterator for FaceVertices<'mesh> {
 
 #[derive(Debug)]
 pub struct FaceNeighbors<'mesh> {
-    inner_iter: FaceEdges<'mesh>
+    inner_iter: FaceEdges<'mesh>,
 }
 
 impl<'mesh> FaceNeighbors<'mesh> {
@@ -147,7 +147,7 @@ impl<'mesh> Iterator for FaceTriangles<'mesh> {
     type Item = (
         &'mesh VertexProxy<'mesh>,
         &'mesh VertexProxy<'mesh>,
-        &'mesh VertexProxy<'mesh>
+        &'mesh VertexProxy<'mesh>,
     );
 
     fn next(&mut self) -> Option<Self::Item> {
