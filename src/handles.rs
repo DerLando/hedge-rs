@@ -1,14 +1,22 @@
 use std::cmp;
 use std::hash::{Hash, Hasher};
 
-use crate::data::{Generation, Index, IGNORED_GENERATION, INVALID_COMPONENT_INDEX};
-use crate::elements::{Face, Vertex};
+use crate::data::{Generation, Index, IGNORED_GENERATION};
 use crate::traits::IsValid;
 
 #[derive(Debug, Copy, Clone, Eq, Default)]
 pub struct Handle {
     index: Index,
     generation: Generation,
+}
+
+impl Handle {
+    pub fn new(index: Index, generation: Generation) -> Self {
+        Handle {
+            index,
+            generation,
+        }
+    }
 }
 
 impl From<Index> for Handle {
@@ -42,6 +50,6 @@ impl PartialEq for Handle {
 
 impl IsValid for Handle {
     fn is_valid(&self) -> bool {
-        self.index != INVALID_COMPONENT_INDEX
+        self.index != Index::Invalid
     }
 }

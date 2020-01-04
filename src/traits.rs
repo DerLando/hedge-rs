@@ -1,5 +1,4 @@
 use crate::data::{Generation, Index};
-use crate::elements::{ElementStatus, Face, Vertex};
 use crate::handles::Handle;
 
 /// An interface for asserting the validity of components and indices of the mesh.

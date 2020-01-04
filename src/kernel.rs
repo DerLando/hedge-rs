@@ -52,14 +52,14 @@ impl ElementBuffer {
         self.buffer
             .iter()
             .enumerate()
-            .map(|(index, element)| (E::Handle::new(index as Index, self.generation), element))
+            .map(|(index, element)| (Handle::new(index as Index, self.generation), element))
     }
 
     pub fn enumerate_mut(&mut self) -> impl Iterator<Item = (Handle, &mut Face)> {
         self.buffer
             .iter_mut()
             .enumerate()
-            .map(|(index, element)| (E::Handle::new(index as Index, self.generation), element))
+            .map(|(index, element)| (Handle::new(index as Index, self.generation), element))
     }
 
     pub fn active_cells(&self) -> impl Iterator<Item = (Handle, &Face)> {
@@ -112,9 +112,9 @@ impl ElementBuffer {
             let cell = &mut self.buffer[index as usize];
             *cell = element;
             cell.set_status(ElementStatus::ACTIVE);
-            E::Handle::new(index, self.generation)
+            Handle::new(index, self.generation)
         } else {
-            let handle = E::Handle::new(self.buffer.len() as u32, self.generation);
+            let handle = Handle::new(self.buffer.len() as u32, self.generation);
             self.buffer.push(element);
             if let Some(element) = self.buffer.get_mut(handle.index() as usize) {
                 element.set_status(ElementStatus::ACTIVE);

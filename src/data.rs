@@ -1,45 +1,91 @@
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use ultraviolet as uv;
 
 /// Handles with this generation value will only have their index considered.
 pub const IGNORED_GENERATION: Generation = 0;
 
-/// Our default value for uninitialized or unconnected components in the mesh.
-pub const INVALID_COMPONENT_INDEX: Index = std::u32::MAX;
+/// Maximum number of sides for a face.
+pub const MAX_EDGES: usize = 8;
 
+/// Generation tracks when the internal buffers have been compacted.
+/// If you use a handle from a previous generation it will be refused.
 pub type Generation = u32;
-pub type Index = u32;
-
+pub type Tag = u32;
 pub type Position = uv::Vec3;
 pub type Normal = uv::Vec3;
 pub type Color = uv::Vec4;
 pub type TexCoord = uv::Vec2;
 
-impl Default for Generation {
-    fn default() -> Self {
-        IGNORED_GENERATION
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, PartialEq)]
+pub enum Index {
+    Invalid,
+    Face(u32),
+    SubComponent(u32, u32),
+}
+
+impl Hash for Index {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use Index::*;
+        match self {
+            Invalid => 0.hash(state),
+            Face(fidx) => fidx.hash(state),
+            SubComponent(fidx, cidx) => {
+                fidx.hash(state);
+                cidx.hash(state);
+            },
+        }
     }
 }
 
 impl Default for Index {
     fn default() -> Self {
-        INVALID_COMPONENT_INDEX
+        Index::Invalid
     }
 }
 
-impl Default for Position {
-    fn default() -> Self {
-        uv::Vec3::new(0.0, 0.0, 0.0)
-    }
+/// Whether or not a cell is current or 'removed'
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum ElementStatus {
+    ACTIVE,
+    INACTIVE,
 }
 
-impl Default for Normal {
-    fn default() -> Self {
-        uv::Vec3::new(0.0, 0.0, 1.0)
-    }
+////////////////////////////////////////////////////////////////
+
+#[derive(Debug)]
+pub struct Face {
+    pub tag: Tag,
+    pub status: ElementStatus,
+    pub vertices: [Vertex; MAX_EDGES],
+    pub adjacent: [Index; MAX_EDGES],
 }
 
-impl Default for Color {
+#[derive(Debug, Default)]
+pub struct Vertex {
+    pub position: Index,
+    pub normal: Normal,
+    pub edges: HashSet<Index>,
+}
+
+////////////////////////////////////////////////////////////////
+
+impl Default for Face {
     fn default() -> Self {
-        uv::Vec4::new(1.0, 1.0, 1.0, 1.0)
+        Face {
+            // I don't want Vertex to impl Copy so we can't use [foo; n] syntax
+            vertices: [
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            ],
+            adjacent: [Default::default(); MAX_EDGES],
+            ..Default::default()
+        }
     }
 }
