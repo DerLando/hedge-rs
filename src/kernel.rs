@@ -48,37 +48,37 @@ impl ElementBuffer {
         !self.free_cells.is_empty()
     }
 
-    pub fn enumerate(&self) -> impl Iterator<Item = (E::Handle, &E)> {
+    pub fn enumerate(&self) -> impl Iterator<Item = (Handle, &Face)> {
         self.buffer
             .iter()
             .enumerate()
             .map(|(index, element)| (E::Handle::new(index as Index, self.generation), element))
     }
 
-    pub fn enumerate_mut(&mut self) -> impl Iterator<Item = (E::Handle, &mut E)> {
+    pub fn enumerate_mut(&mut self) -> impl Iterator<Item = (Handle, &mut Face)> {
         self.buffer
             .iter_mut()
             .enumerate()
             .map(|(index, element)| (E::Handle::new(index as Index, self.generation), element))
     }
 
-    pub fn active_cells(&self) -> impl Iterator<Item = (E::Handle, &E)> {
+    pub fn active_cells(&self) -> impl Iterator<Item = (Handle, &Face)> {
         self.enumerate().filter(|elem| elem.1.is_active())
     }
 
-    pub fn active_cells_mut(&mut self) -> impl Iterator<Item = (E::Handle, &mut E)> {
+    pub fn active_cells_mut(&mut self) -> impl Iterator<Item = (Handle, &mut Face)> {
         self.enumerate_mut().filter(|elem| elem.1.is_active())
     }
 
-    pub fn active_elements(&self) -> impl Iterator<Item = &E> {
+    pub fn active_elements(&self) -> impl Iterator<Item = &Face> {
         self.buffer.iter().filter(|elem| elem.is_active())
     }
 
-    pub fn active_elements_mut(&mut self) -> impl Iterator<Item = &mut E> {
+    pub fn active_elements_mut(&mut self) -> impl Iterator<Item = &mut Face> {
         self.buffer.iter_mut().filter(|elem| elem.is_active())
     }
 
-    fn ensure_active_cell(element: &E) -> Option<&E> {
+    fn ensure_active_cell(element: &Face) -> Option<&Face> {
         if element.is_active() {
             Some(element)
         } else {
@@ -86,7 +86,7 @@ impl ElementBuffer {
         }
     }
 
-    pub fn get(&self, handle: E::Handle) -> Option<&E> {
+    pub fn get(&self, handle: Handle) -> Option<&Face> {
         if !handle.is_valid() {
             return None;
         }
@@ -107,7 +107,7 @@ impl ElementBuffer {
             })
     }
 
-    pub fn add(&mut self, element: E) -> E::Handle {
+    pub fn add(&mut self, element: Face) -> Handle {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index as usize];
             *cell = element;
@@ -123,7 +123,7 @@ impl ElementBuffer {
         }
     }
 
-    pub fn remove(&mut self, handle: E::Handle) {
+    pub fn remove(&mut self, handle: Handle) {
         if let Some(cell) = self.get(handle) {
             cell.set_status(ElementStatus::INACTIVE);
             self.free_cells.push(handle.index());
@@ -163,63 +163,3 @@ impl Kernel {
     }
 }
 
-impl GetElement<VertexHandle> for Kernel {
-    fn get(&self, handle: VertexHandle) -> Option<&<VertexHandle as ElementHandle>::Element> {
-        self.vertex_buffer.get(handle)
-    }
-}
-
-impl GetElement<EdgeHandle> for Kernel {
-    fn get(&self, handle: EdgeHandle) -> Option<&<EdgeHandle as ElementHandle>::Element> {
-        self.edge_buffer.get(handle)
-    }
-}
-
-impl GetElement<FaceHandle> for Kernel {
-    fn get(&self, handle: FaceHandle) -> Option<&<FaceHandle as ElementHandle>::Element> {
-        self.face_buffer.get(handle)
-    }
-}
-
-impl AddElement<Vertex> for Kernel {
-    fn add(&mut self, element: Vertex) -> <Vertex as MeshElement>::Handle {
-        let pindex = element.data().point.index();
-        let hnd = self.vertex_buffer.add(element);
-        log::trace!("---- Created vertex: {} @ {}", hnd.index(), pindex);
-        hnd
-    }
-}
-
-impl AddElement<Edge> for Kernel {
-    fn add(&mut self, element: Edge) -> <Edge as MeshElement>::Handle {
-        let hnd = self.edge_buffer.add(element);
-        log::trace!("---- Created edge: {}", hnd.index());
-        hnd
-    }
-}
-
-impl AddElement<Face> for Kernel {
-    fn add(&mut self, element: Face) -> <Face as MeshElement>::Handle {
-        let hnd = self.face_buffer.add(element);
-        log::trace!("---- Created face: {}", hnd.index());
-        hnd
-    }
-}
-
-impl RemoveElement<VertexHandle> for Kernel {
-    fn remove(&mut self, handle: VertexHandle) {
-        self.vertex_buffer.remove(handle)
-    }
-}
-
-impl RemoveElement<EdgeHandle> for Kernel {
-    fn remove(&mut self, handle: EdgeHandle) {
-        self.edge_buffer.remove(handle)
-    }
-}
-
-impl RemoveElement<FaceHandle> for Kernel {
-    fn remove(&mut self, handle: FaceHandle) {
-        self.face_buffer.remove(handle)
-    }
-}

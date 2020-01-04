@@ -14,7 +14,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-nalgebra = "0.18"
+ultraviolet = "0.4"
 
 [dev-dependencies]
 env_logger = "0.6"

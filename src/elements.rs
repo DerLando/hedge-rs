@@ -1,7 +1,6 @@
 use crate::data::{Index, Position, Normal, INVALID_COMPONENT_INDEX};
 use crate::traits::IsValid;
 use std::collections::HashSet;
-use nalgebra as na;
 
 pub const MAX_EDGES: usize = 8; // maximum number of sides for a face
 
