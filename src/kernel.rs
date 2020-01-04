@@ -1,8 +1,11 @@
 use std::fmt;
 
-use crate::data::{Generation, Index, INVALID_INDEX, Point, Face, Vertex, Handle};
+use crate::data::{
+    Generation, Index, Point, Face, Vertex, Handle,
+    INVALID_INDEX, ComponentID,
+};
 use crate::traits::{
-    AddElement, GetElement, IsValid, RemoveElement, Storable
+    IsValid, Storable
 };
 
 /// A pretty simple wrapper over a pair of 'Vec's.
@@ -81,6 +84,13 @@ impl<E: Storable> CompactableBuffer<E> {
         self.buffer.get(index as usize)
     }
 
+    pub fn get_mut(&mut self, index: Index) -> Option<&mut E> {
+        if index == INVALID_INDEX || self.free_cells.contains(&index) {
+            return None;
+        }
+        self.buffer.get_mut(index as usize)
+    }
+
     pub fn add(&mut self, element: E) -> Index {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index as usize];
@@ -136,5 +146,137 @@ impl Kernel {
         let _point_remap_table = self.point_buffer.compact();
         unimplemented!()
     }
+
+    pub fn add_point(&mut self, point: Point) -> Handle {
+        log::trace!("Adding point {:?}", point);
+        let index = self.point_buffer.add(point);
+        Point::make_handle(index, self.point_buffer.generation)
+    }
+
+    pub fn add_face(&mut self, face: Face) -> Handle {
+        log::trace!("Adding face {:?}", face);
+        let index = self.face_buffer.add(face);
+        Face::make_handle(index, self.face_buffer.generation)
+    }
+
+    pub fn point(&self, handle: impl Into<Handle>) -> Option<&Point> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Point(index) = handle.id() {
+            self.point_buffer.get(index)
+        } else {
+            log::warn!("Component ID mismatch. Expected point, got {:?}", handle);
+            None
+        }
+    }
+
+    pub fn point_mut(&mut self, handle: impl Into<Handle>) -> Option<&mut Point> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Point(index) = handle.id() {
+            self.point_buffer.get_mut(index)
+        } else {
+            log::warn!("Component ID mismatch. Expected point, got {:?}", handle);
+            None
+        }
+    }
+
+    pub fn face(&self, handle: impl Into<Handle>) -> Option<&Face> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Face(index) = handle.id() {
+            self.face_buffer.get(index)
+        } else {
+            log::warn!("Component ID mismatch. Expected face, got {:?}", handle);
+            None
+        }
+    }
+
+    pub fn face_mut(&mut self, handle: impl Into<Handle>) -> Option<&mut Face> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Face(index) = handle.id() {
+            self.face_buffer.get_mut(index)
+        } else {
+            log::warn!("Component ID mismatch. Expected face, got {:?}", handle);
+            None
+        }
+    }
+
+    pub fn vertex(&self, handle: impl Into<Handle>) -> Option<&Vertex> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Vertex(vert_id) = handle.id() {
+            self.face_buffer.get(vert_id.fidx).map(|face| face.vertex(vert_id.vidx))
+        } else {
+            log::warn!("Component ID mismatch. Expected vertex, got {:?}", handle);
+            None
+        }
+    }
+
+    pub fn vertex_mut(&mut self, handle: impl Into<Handle>) -> Option<&mut Vertex> {
+        let handle = handle.into();
+        if !handle.is_valid() {
+            return None;
+        }
+        if let ComponentID::Vertex(vert_id) = handle.id() {
+            self.face_buffer.get_mut(vert_id.fidx).map(|face| face.vertex_mut(vert_id.vidx))
+        } else {
+            log::warn!("Component ID mismatch. Expected vertex, got {:?}", handle);
+            None
+        }
+    }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn basic_kernel_operation() {
+        let mut kernel = Kernel::default();
+
+        let p0 = kernel.add_point(Point::default());
+        let p1 = kernel.add_point(Point::default());
+        let p2 = kernel.add_point(Point::default());
+
+        let f0 = {
+            let face = Face::from_points([
+                p0.index(),
+                p1.index(),
+                p2.index()
+            ].as_ref());
+            kernel.add_face(face)
+        };
+
+        assert_eq!(kernel.face_buffer.len(), 1);
+        assert_eq!(kernel.point_buffer.len(), 3);
+
+        let face = kernel.face(f0);
+        assert!(face.is_some());
+        let face = face.unwrap();
+        assert_eq!(face.vert_count(), 3);
+
+        assert_eq!(face.vertex(0).point, p0.index());
+        assert_eq!(face.vertex(1).point, p1.index());
+        assert_eq!(face.vertex(2).point, p2.index());
+
+        let f0v0 = kernel.vertex((0,0)).expect("Failed to get f0v0!");
+        let f0v1 = kernel.vertex((0,1)).expect("Failed to get f0v1!");
+        let f0v2 = kernel.vertex((0,2)).expect("Failed to get f0v2!");
+
+        assert_eq!(face.vertex(0).point, f0v0.point);
+        assert_eq!(face.vertex(1).point, f0v1.point);
+        assert_eq!(face.vertex(2).point, f0v2.point);
+    }
+}

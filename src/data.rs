@@ -23,6 +23,22 @@ pub struct VertexID {
     pub vidx: Index,
 }
 
+impl VertexID {
+    pub fn new(fidx: Index, vidx: Index) -> VertexID {
+        VertexID {
+            fidx,
+            vidx,
+        }
+    }
+}
+
+impl IsValid for VertexID {
+    fn is_valid(&self) -> bool {
+        self.fidx != INVALID_INDEX && self.vidx != INVALID_INDEX
+            && self.vidx as usize <= MAX_EDGES
+    }
+}
+
 impl Default for VertexID {
     fn default() -> Self {
         VertexID {
@@ -32,12 +48,48 @@ impl Default for VertexID {
     }
 }
 
+impl From<(Index, Index)> for VertexID {
+    fn from(pair: (u32, u32)) -> Self {
+        VertexID::new(pair.0, pair.1)
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Face {
     pub tag: Tag,
-    pub num_vertices: u8,
-    pub vertices: [Vertex; MAX_EDGES],
-    pub adjacent: [VertexID; MAX_EDGES],
+    num_vertices: u8,
+    vertices: [Vertex; MAX_EDGES],
+    adjacent: [VertexID; MAX_EDGES],
+}
+
+impl Face {
+    pub fn from_points(points: &[Index]) -> Self {
+        if points.len() > MAX_EDGES {
+            panic!("Unable to create a face with more than {} points.", MAX_EDGES);
+        }
+        let mut face = Face {
+            num_vertices: points.len() as u8,
+            ..Default::default()
+        };
+        for (vidx, pidx) in points.iter().enumerate() {
+            face.vertices[vidx] = Vertex::at_point(*pidx);
+        }
+        face
+    }
+
+    pub fn vertex(&self, index: Index) -> &Vertex {
+        let index = (index as u8 % self.num_vertices) as usize;
+        &self.vertices[index]
+    }
+
+    pub fn vertex_mut(&mut self, index: Index) -> &mut Vertex {
+        let index = (index as u8 % self.num_vertices) as usize;
+        &mut self.vertices[index]
+    }
+
+    pub fn vert_count(&self) -> u8 {
+        self.num_vertices
+    }
 }
 
 impl Storable for Face {
@@ -58,6 +110,29 @@ pub struct Vertex {
     pub normal: Normal,
     pub color: Color,
     pub tex_coord: TexCoord,
+}
+
+impl Vertex {
+    pub fn at_point(point: Index) -> Self {
+        Vertex {
+            point,
+            ..Default::default()
+        }
+    }
+
+    pub fn new(
+        point: Index,
+        normal: Normal,
+        color: Color,
+        tex_coord: TexCoord
+    ) -> Self {
+        Vertex {
+            point,
+            normal,
+            color,
+            tex_coord,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -105,6 +180,12 @@ impl Default for ComponentID {
     }
 }
 
+impl From<VertexID> for ComponentID {
+    fn from(id: VertexID) -> Self {
+        ComponentID::Vertex(id)
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone, Eq, PartialOrd, PartialEq)]
 pub struct Handle {
     id: ComponentID,
@@ -125,11 +206,32 @@ impl Handle {
             generation: Some(generation),
         }
     }
+
+    pub fn id(&self) -> ComponentID {
+        self.id
+    }
+
+    pub fn index(&self) -> Index {
+        use ComponentID::*;
+        match self.id {
+            Invalid => INVALID_INDEX,
+            Face(index) => index,
+            Vertex(id) => id.vidx, // maybe the face instead?
+            Point(index) => index,
+        }
+    }
 }
 
 impl From<ComponentID> for Handle {
     fn from(index: ComponentID) -> Self {
         Handle::for_id(index)
+    }
+}
+
+/// Special case impl for getting vertices easily
+impl From<(u32, u32)> for Handle {
+    fn from(pair: (u32, u32)) -> Self {
+        Handle::for_id(ComponentID::from(VertexID::from(pair)))
     }
 }
 
@@ -141,6 +243,12 @@ impl Hash for Handle {
 
 impl IsValid for Handle {
     fn is_valid(&self) -> bool {
-        self.id != ComponentID::Invalid
+        use ComponentID::*;
+        match self.id {
+            Invalid => false,
+            Face(fidx) => fidx != INVALID_INDEX,
+            Vertex(vert_id) => vert_id.is_valid(),
+            Point(pidx) => pidx != INVALID_INDEX,
+        }
     }
 }
