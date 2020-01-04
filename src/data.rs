@@ -1,6 +1,5 @@
 use std::hash::{Hash, Hasher};
 use ultraviolet as uv;
-use crate::handles::Handle;
 use crate::traits::{Storable, IsValid};
 
 pub const INVALID_INDEX: Index = std::u32::MAX;
@@ -32,34 +31,6 @@ impl Default for VertexID {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy, Eq, PartialOrd, PartialEq)]
-pub enum ComponentID {
-    Invalid,
-    Face(Index),
-    Vertex(VertexID),
-    Point(Index),
-}
-
-impl Hash for ComponentID {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        use ComponentID::*;
-        match self {
-            Invalid => 0.hash(state),
-            Face(fidx) => fidx.hash(state),
-            Vertex(vid) => vid.hash(state),
-            Point(pid) => pid.hash(state),
-        }
-    }
-}
-
-impl Default for ComponentID {
-    fn default() -> Self {
-        ComponentID::Invalid
-    }
-}
-
-////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Default)]
 pub struct Face {
@@ -105,5 +76,71 @@ impl From<Position> for Point {
 impl Storable for Point {
     fn make_handle(index: Index, generation: u32) -> Handle {
         Handle::new(ComponentID::Point(index), generation)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, PartialEq)]
+pub enum ComponentID {
+    Invalid,
+    Face(Index),
+    Vertex(VertexID),
+    Point(Index),
+}
+
+impl Hash for ComponentID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use ComponentID::*;
+        match self {
+            Invalid => 0.hash(state),
+            Face(fidx) => fidx.hash(state),
+            Vertex(vid) => vid.hash(state),
+            Point(pid) => pid.hash(state),
+        }
+    }
+}
+
+impl Default for ComponentID {
+    fn default() -> Self {
+        ComponentID::Invalid
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone, Eq, PartialOrd, PartialEq)]
+pub struct Handle {
+    id: ComponentID,
+    generation: Option<Generation>,
+}
+
+impl Handle {
+    pub fn for_id(id: ComponentID) -> Self {
+        Handle {
+            id,
+            generation: None,
+        }
+    }
+
+    pub fn new(id: ComponentID, generation: Generation) -> Self {
+        Handle {
+            id,
+            generation: Some(generation),
+        }
+    }
+}
+
+impl From<ComponentID> for Handle {
+    fn from(index: ComponentID) -> Self {
+        Handle::for_id(index)
+    }
+}
+
+impl Hash for Handle {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl IsValid for Handle {
+    fn is_valid(&self) -> bool {
+        self.id != ComponentID::Invalid
     }
 }

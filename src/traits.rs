@@ -1,5 +1,4 @@
-use crate::data::{Index, Generation};
-use crate::handles::Handle;
+use crate::data::{Index, Generation, Handle};
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {

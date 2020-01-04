@@ -1,7 +1,6 @@
 use std::fmt;
 
-use crate::data::{Generation, Index, INVALID_INDEX, Point, Face, Vertex};
-use crate::handles::Handle;
+use crate::data::{Generation, Index, INVALID_INDEX, Point, Face, Vertex, Handle};
 use crate::traits::{
     AddElement, GetElement, IsValid, RemoveElement, Storable
 };
