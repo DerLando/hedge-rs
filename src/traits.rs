@@ -1,9 +1,13 @@
-use crate::data::{Generation, Index};
+use crate::data::{Index, Generation};
 use crate::handles::Handle;
 
 /// An interface for asserting the validity of components and indices of the mesh.
 pub trait IsValid {
     fn is_valid(&self) -> bool;
+}
+
+pub trait Storable {
+    fn make_handle(index: Index, generation: Generation) -> Handle;
 }
 
 pub trait AddElement<E> {

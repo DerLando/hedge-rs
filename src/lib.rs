@@ -12,7 +12,7 @@ pub use crate::traits::*;
 pub mod data;
 pub mod handles;
 pub mod traits;
-//pub mod kernel;
+pub mod kernel;
 //pub mod mesh;
 //pub mod proxy;
 //pub mod iterators;

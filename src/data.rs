@@ -1,9 +1,9 @@
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use ultraviolet as uv;
+use crate::handles::Handle;
+use crate::traits::{Storable, IsValid};
 
-/// Handles with this generation value will only have their index considered.
-pub const IGNORED_GENERATION: Generation = 0;
+pub const INVALID_INDEX: Index = std::u32::MAX;
 
 /// Maximum number of sides for a face.
 pub const MAX_EDGES: usize = 8;
@@ -11,81 +11,99 @@ pub const MAX_EDGES: usize = 8;
 /// Generation tracks when the internal buffers have been compacted.
 /// If you use a handle from a previous generation it will be refused.
 pub type Generation = u32;
+pub type Index = u32;
 pub type Tag = u32;
 pub type Position = uv::Vec3;
 pub type Normal = uv::Vec3;
 pub type Color = uv::Vec4;
 pub type TexCoord = uv::Vec2;
 
-#[derive(Debug, Clone, Copy, Eq, PartialOrd, PartialEq)]
-pub enum Index {
-    Invalid,
-    Face(u32),
-    SubComponent(u32, u32),
+#[derive(Debug, Copy, Clone, Eq, PartialOrd, PartialEq, Hash)]
+pub struct VertexID {
+    pub fidx: Index,
+    pub vidx: Index,
 }
 
-impl Hash for Index {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        use Index::*;
-        match self {
-            Invalid => 0.hash(state),
-            Face(fidx) => fidx.hash(state),
-            SubComponent(fidx, cidx) => {
-                fidx.hash(state);
-                cidx.hash(state);
-            },
+impl Default for VertexID {
+    fn default() -> Self {
+        VertexID {
+            fidx: INVALID_INDEX,
+            vidx: INVALID_INDEX,
         }
     }
 }
 
-impl Default for Index {
-    fn default() -> Self {
-        Index::Invalid
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, PartialEq)]
+pub enum ComponentID {
+    Invalid,
+    Face(Index),
+    Vertex(VertexID),
+    Point(Index),
+}
+
+impl Hash for ComponentID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use ComponentID::*;
+        match self {
+            Invalid => 0.hash(state),
+            Face(fidx) => fidx.hash(state),
+            Vertex(vid) => vid.hash(state),
+            Point(pid) => pid.hash(state),
+        }
     }
 }
 
-/// Whether or not a cell is current or 'removed'
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-pub enum ElementStatus {
-    ACTIVE,
-    INACTIVE,
+impl Default for ComponentID {
+    fn default() -> Self {
+        ComponentID::Invalid
+    }
 }
 
 ////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Face {
     pub tag: Tag,
-    pub status: ElementStatus,
+    pub num_vertices: u8,
     pub vertices: [Vertex; MAX_EDGES],
-    pub adjacent: [Index; MAX_EDGES],
+    pub adjacent: [VertexID; MAX_EDGES],
+}
+
+impl Storable for Face {
+    fn make_handle(index: u32, generation: u32) -> Handle {
+        Handle::new(ComponentID::Face(index), generation)
+    }
+}
+
+impl IsValid for Face {
+    fn is_valid(&self) -> bool {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, Default)]
 pub struct Vertex {
-    pub position: Index,
+    pub point: Index,
     pub normal: Normal,
-    pub edges: HashSet<Index>,
+    pub color: Color,
+    pub tex_coord: TexCoord,
 }
 
-////////////////////////////////////////////////////////////////
+#[derive(Debug, Default)]
+pub struct Point {
+    pub position: Position,
+}
 
-impl Default for Face {
-    fn default() -> Self {
-        Face {
-            // I don't want Vertex to impl Copy so we can't use [foo; n] syntax
-            vertices: [
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                Default::default(),
-            ],
-            adjacent: [Default::default(); MAX_EDGES],
-            ..Default::default()
+impl From<Position> for Point {
+    fn from(position: Position) -> Self {
+        Point {
+            position,
         }
+    }
+}
+
+impl Storable for Point {
+    fn make_handle(index: Index, generation: u32) -> Handle {
+        Handle::new(ComponentID::Point(index), generation)
     }
 }

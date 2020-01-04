@@ -1,22 +1,21 @@
 use std::fmt;
 
-use crate::data::{Generation, Index, IGNORED_GENERATION};
-use crate::elements::{ElementStatus, Face, Vertex};
+use crate::data::{Generation, Index, INVALID_INDEX, Point, Face, Vertex};
 use crate::handles::Handle;
 use crate::traits::{
-    AddElement, GetElement, IsValid, RemoveElement,
+    AddElement, GetElement, IsValid, RemoveElement, Storable
 };
 
 /// A pretty simple wrapper over a pair of 'Vec's.
-pub struct ElementBuffer {
+pub struct CompactableBuffer<E: Storable> {
     generation: Generation,
     pub free_cells: Vec<Index>,
-    pub buffer: Vec<Face>,
+    pub buffer: Vec<E>,
 }
 
-impl Default for ElementBuffer {
+impl<E: Storable> Default for CompactableBuffer<E> {
     fn default() -> Self {
-        ElementBuffer {
+        CompactableBuffer {
             generation: 1,
             free_cells: Vec::new(),
             buffer: Vec::new(),
@@ -24,13 +23,13 @@ impl Default for ElementBuffer {
     }
 }
 
-impl fmt::Debug for ElementBuffer {
+impl<E: Storable> fmt::Debug for CompactableBuffer<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ElementBuffer<> {{ {} items }}", self.len())
     }
 }
 
-impl ElementBuffer {
+impl<E: Storable> CompactableBuffer<E> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -48,85 +47,56 @@ impl ElementBuffer {
         !self.free_cells.is_empty()
     }
 
-    pub fn enumerate(&self) -> impl Iterator<Item = (Handle, &Face)> {
+    pub fn enumerate(&self) -> impl Iterator<Item = (Index, &E)> {
         self.buffer
             .iter()
             .enumerate()
-            .map(|(index, element)| (Handle::new(index as Index, self.generation), element))
+            .map(|(index, element)| (index as Index, element))
     }
 
-    pub fn enumerate_mut(&mut self) -> impl Iterator<Item = (Handle, &mut Face)> {
+    pub fn enumerate_mut(&mut self) -> impl Iterator<Item = (Index, &mut E)> {
         self.buffer
             .iter_mut()
             .enumerate()
-            .map(|(index, element)| (Handle::new(index as Index, self.generation), element))
+            .map(|(index, element)| (index as Index, element))
     }
 
-    pub fn active_cells(&self) -> impl Iterator<Item = (Handle, &Face)> {
-        self.enumerate().filter(|elem| elem.1.is_active())
+    pub fn active_elements(&self) -> impl Iterator<Item = &E> {
+        let free_cells = self.free_cells.clone(); // TODO: to avoid an outlived reference
+        self.enumerate()
+            .filter(move |elem| !free_cells.contains(&elem.0))
+            .map(|item| item.1)
     }
 
-    pub fn active_cells_mut(&mut self) -> impl Iterator<Item = (Handle, &mut Face)> {
-        self.enumerate_mut().filter(|elem| elem.1.is_active())
+    pub fn active_elements_mut(&mut self) -> impl Iterator<Item = &mut E> {
+        let free_cells = self.free_cells.clone(); // TODO: to avoid an outlived reference
+        self.enumerate_mut()
+            .filter(move |elem| !free_cells.contains(&elem.0))
+            .map(|item| item.1)
     }
 
-    pub fn active_elements(&self) -> impl Iterator<Item = &Face> {
-        self.buffer.iter().filter(|elem| elem.is_active())
-    }
-
-    pub fn active_elements_mut(&mut self) -> impl Iterator<Item = &mut Face> {
-        self.buffer.iter_mut().filter(|elem| elem.is_active())
-    }
-
-    fn ensure_active_cell(element: &Face) -> Option<&Face> {
-        if element.is_active() {
-            Some(element)
-        } else {
-            None
-        }
-    }
-
-    pub fn get(&self, handle: Handle) -> Option<&Face> {
-        if !handle.is_valid() {
+    pub fn get(&self, index: Index) -> Option<&E> {
+        if index == INVALID_INDEX || self.free_cells.contains(&index) {
             return None;
         }
-
-        self.buffer
-            .get(handle.index() as usize)
-            .and_then(Self::ensure_active_cell)
-            .and_then(|elem| {
-                if handle.generation() > IGNORED_GENERATION {
-                    if self.generation == handle.generation() {
-                        Some(elem)
-                    } else {
-                        None
-                    }
-                } else {
-                    Some(elem)
-                }
-            })
+        self.buffer.get(index as usize)
     }
 
-    pub fn add(&mut self, element: Face) -> Handle {
+    pub fn add(&mut self, element: E) -> Index {
         if let Some(index) = self.free_cells.pop() {
             let cell = &mut self.buffer[index as usize];
             *cell = element;
-            cell.set_status(ElementStatus::ACTIVE);
-            Handle::new(index, self.generation)
+            index
         } else {
-            let handle = Handle::new(self.buffer.len() as u32, self.generation);
+            let index = self.buffer.len() as Index;
             self.buffer.push(element);
-            if let Some(element) = self.buffer.get_mut(handle.index() as usize) {
-                element.set_status(ElementStatus::ACTIVE);
-            }
-            handle
+            index
         }
     }
 
-    pub fn remove(&mut self, handle: Handle) {
-        if let Some(cell) = self.get(handle) {
-            cell.set_status(ElementStatus::INACTIVE);
-            self.free_cells.push(handle.index());
+    pub fn remove(&mut self, index: Index) {
+        if self.get(index).is_some() {
+            self.free_cells.push(index);
         }
     }
 
@@ -152,14 +122,20 @@ impl ElementBuffer {
 /// Storage interface for Mesh types
 #[derive(Debug, Default)]
 pub struct Kernel {
-    pub buffer: ElementBuffer,
+    pub face_buffer: CompactableBuffer<Face>,
+    pub point_buffer: CompactableBuffer<Point>,
 }
 
 impl Kernel {
     pub fn can_be_compacted(&self) -> bool {
         self.face_buffer.free_cells.is_empty()
-            || self.edge_buffer.free_cells.is_empty()
-            || self.vertex_buffer.free_cells.is_empty()
+            || self.point_buffer.free_cells.is_empty()
+    }
+
+    pub fn compact(&mut self) {
+        let _face_remap_table = self.face_buffer.compact();
+        let _point_remap_table = self.point_buffer.compact();
+        unimplemented!()
     }
 }
 
