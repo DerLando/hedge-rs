@@ -136,6 +136,14 @@ pub struct Kernel {
 }
 
 impl Kernel {
+    pub fn face_count(&self) -> usize {
+        self.face_buffer.len()
+    }
+
+    pub fn point_count(&self) -> usize {
+        self.point_buffer.len()
+    }
+
     pub fn can_be_compacted(&self) -> bool {
         self.face_buffer.free_cells.is_empty()
             || self.point_buffer.free_cells.is_empty()
