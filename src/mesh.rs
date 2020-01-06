@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::atomic;
 
-use crate::data::{Tag, Handle};
+use crate::data::{Tag, Handle, Point, Position};
 use crate::kernel::Kernel;
 
 pub struct Mesh {
@@ -37,13 +37,19 @@ impl Mesh {
     pub fn calculate_normals(&self) {
         unimplemented!()
     }
+
+    pub fn add_points(&mut self, points: &[Point]) {
+        self.kernel.add_points(points);
+        for point in points.into_iter() {
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         traits::IsValid,
-        data::{Handle, Point},
+        data::{Handle, Point, Position},
         Mesh,
     };
 
@@ -60,6 +66,18 @@ mod tests {
 
     #[test]
     fn can_add_and_remove_points() {
+        let _ = env_logger::try_init();
+        let mut mesh = Mesh::default();
+
+        mesh.add_points([
+            Point::from(Position::new(0.0, 0.0, 0.0)),
+            Point::from(Position::new(1.0, 0.0, 0.0)),
+            Point::from(Position::new(1.0, 1.0, 0.0)),
+            Point::from(Position::new(0.0, 1.0, 0.0)),
+        ].as_ref());
+
+        assert_eq!(mesh.kernel.point_count(), 4);
+
         unimplemented!()
     }
 

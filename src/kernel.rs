@@ -15,7 +15,7 @@ pub struct CompactableBuffer<E: Storable> {
     pub buffer: Vec<E>,
 }
 
-impl<E: Storable> Default for CompactableBuffer<E> {
+impl<E: Storable + Clone> Default for CompactableBuffer<E> {
     fn default() -> Self {
         CompactableBuffer {
             generation: 1,
@@ -126,6 +126,27 @@ impl<E: Storable> CompactableBuffer<E> {
     }
 }
 
+impl<E: Storable + Clone> CompactableBuffer<E> {
+    pub fn extend_from_slice(&mut self, elements: &[E]) {
+        if self.free_cells.is_empty() {
+            self.buffer.extend_from_slice(elements);
+        } else {
+            let free_cell_count = self.free_cells.len();
+            if free_cell_count > elements.len() {
+                for element in elements {
+                    self.add(element.clone());
+                }
+            } else {
+                let elements = elements.split_at(free_cell_count);
+                for element in elements.0 {
+                    self.add(element.clone());
+                }
+                self.buffer.extend_from_slice(elements.1);
+            }
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Storage interface for Mesh types
@@ -150,6 +171,7 @@ impl Kernel {
     }
 
     pub fn compact(&mut self) {
+        log::trace!("Compacting internal buffers.");
         let _face_remap_table = self.face_buffer.compact();
         let _point_remap_table = self.point_buffer.compact();
         unimplemented!()
@@ -159,6 +181,11 @@ impl Kernel {
         log::trace!("Adding point {:?}", point);
         let index = self.point_buffer.add(point);
         Point::make_handle(index, self.point_buffer.generation)
+    }
+
+    pub fn add_points(&mut self, points: &[Point]) {
+        log::trace!("Adding {} points.", points.len());
+        self.point_buffer.extend_from_slice(points);
     }
 
     pub fn add_face(&mut self, face: Face) -> Handle {

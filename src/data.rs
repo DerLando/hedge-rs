@@ -54,7 +54,7 @@ impl From<(Index, Index)> for VertexID {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Face {
     pub tag: Tag,
     num_vertices: u8,
@@ -104,7 +104,7 @@ impl IsValid for Face {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Vertex {
     pub point: Index,
     pub normal: Normal,
@@ -135,7 +135,7 @@ impl Vertex {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Point {
     pub position: Position,
 }
